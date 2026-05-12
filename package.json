@@ -1,0 +1,58 @@
+{
+  "name": "agentmeter",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.33.2",
+  "scripts": {
+    "dev": "next dev --turbo -H 0.0.0.0",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "tsx prisma/seed.ts",
+    "demo": "pnpm db:generate && pnpm dev"
+  },
+  "dependencies": {
+    "@prisma/client": "latest",
+    "@radix-ui/react-dialog": "latest",
+    "@radix-ui/react-slot": "latest",
+    "@solana/spl-token": "latest",
+    "@solana/web3.js": "latest",
+    "class-variance-authority": "latest",
+    "clsx": "latest",
+    "dodopayments": "latest",
+    "hono": "latest",
+    "lucide-react": "latest",
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "tailwind-merge": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@playwright/test": "latest",
+    "@tailwindcss/postcss": "latest",
+    "@testing-library/jest-dom": "latest",
+    "@testing-library/react": "latest",
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "autoprefixer": "latest",
+    "eslint": "latest",
+    "eslint-config-next": "latest",
+    "jsdom": "latest",
+    "postcss": "latest",
+    "prisma": "latest",
+    "tailwindcss": "latest",
+    "tsx": "latest",
+    "typescript": "latest",
+    "vitest": "latest"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  }
+}

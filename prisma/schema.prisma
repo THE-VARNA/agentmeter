@@ -1,0 +1,188 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Merchant {
+  id             String          @id @default(cuid())
+  name           String
+  slug           String          @unique
+  dodoBusinessId String?
+  dodoCustomerId String?
+  solanaWallet   String
+  x402Network    String
+  facilitatorUrl String
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  endpoints      Endpoint[]
+  buyers         Buyer[]
+  apiCredentials ApiCredential[]
+  checkouts      DodoCheckout[]
+  webhooks       DodoWebhookEvent[]
+  demoRuns       DemoRun[]
+}
+
+model Endpoint {
+  id              String           @id @default(cuid())
+  merchantId      String
+  name            String
+  slug            String           @unique
+  method          String
+  upstreamUrl     String
+  priceUsd        Decimal          @db.Decimal(12, 6)
+  description     String
+  mimeType        String
+  active          Boolean          @default(true)
+  dodoMeterId     String?
+  requestCount    Int              @default(0)
+  revenueUsd      Decimal          @default(0) @db.Decimal(12, 6)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  merchant        Merchant         @relation(fields: [merchantId], references: [id])
+  gatewayRequests GatewayRequest[]
+  x402Payments    X402Payment[]
+}
+
+model Buyer {
+  id                 String              @id @default(cuid())
+  merchantId         String
+  email              String
+  name               String
+  agentWallet        String
+  dodoCustomerId     String
+  creditBalance      Decimal             @default(25000) @db.Decimal(18, 6)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  merchant           Merchant            @relation(fields: [merchantId], references: [id])
+  gatewayRequests    GatewayRequest[]
+  x402Payments       X402Payment[]
+  dodoCheckouts      DodoCheckout[]
+  creditLedgerEntries CreditLedgerEntry[]
+}
+
+model ApiCredential {
+  id            String   @id @default(cuid())
+  merchantId    String
+  label         String
+  keyHash       String
+  lastFour      String
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  lastUsedAt    DateTime?
+  merchant      Merchant @relation(fields: [merchantId], references: [id])
+}
+
+model GatewayRequest {
+  id             String       @id @default(cuid())
+  endpointId     String
+  buyerId        String?
+  method         String
+  path           String
+  statusCode     Int
+  rawStatus      String
+  providerId     String?
+  idempotencyKey String
+  latencyMs      Int
+  amountUsd      Decimal      @db.Decimal(12, 6)
+  txSignature    String?
+  dodoPaymentId  String?
+  errorCode      String?
+  requestBody    Json?
+  responseBody   Json?
+  createdAt      DateTime     @default(now())
+  endpoint       Endpoint     @relation(fields: [endpointId], references: [id])
+  buyer          Buyer?       @relation(fields: [buyerId], references: [id])
+  x402Payment    X402Payment?
+}
+
+model X402Payment {
+  id               String         @id @default(cuid())
+  endpointId       String
+  buyerId          String?
+  gatewayRequestId String?        @unique
+  providerId       String?
+  idempotencyKey   String
+  scheme           String
+  network          String
+  amountUsd        Decimal        @db.Decimal(12, 6)
+  payTo            String
+  txSignature      String?
+  settlementStatus String
+  rawStatus        String
+  rawPayload       Json?
+  createdAt        DateTime       @default(now())
+  endpoint         Endpoint       @relation(fields: [endpointId], references: [id])
+  buyer            Buyer?         @relation(fields: [buyerId], references: [id])
+  gatewayRequest   GatewayRequest? @relation(fields: [gatewayRequestId], references: [id])
+}
+
+model DodoCheckout {
+  id             String   @id @default(cuid())
+  merchantId     String
+  buyerId        String?
+  providerId     String?
+  idempotencyKey String
+  checkoutUrl    String
+  productId      String
+  amountUsd      Decimal  @db.Decimal(12, 2)
+  rawStatus      String
+  dodoPaymentId  String?
+  rawPayload     Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  merchant       Merchant @relation(fields: [merchantId], references: [id])
+  buyer          Buyer?   @relation(fields: [buyerId], references: [id])
+}
+
+model DodoWebhookEvent {
+  id             String   @id @default(cuid())
+  merchantId     String
+  providerId     String   @unique
+  idempotencyKey String
+  eventType      String
+  rawStatus      String
+  parsedAmount   Decimal? @db.Decimal(12, 2)
+  txSignature    String?
+  dodoPaymentId  String?
+  rawPayload     Json
+  processedAt    DateTime?
+  createdAt      DateTime @default(now())
+  merchant       Merchant @relation(fields: [merchantId], references: [id])
+}
+
+model CreditLedgerEntry {
+  id                  String   @id @default(cuid())
+  buyerId             String
+  providerId          String?
+  idempotencyKey      String
+  eventType           String
+  rawStatus           String
+  amount              Decimal  @db.Decimal(18, 6)
+  balanceBefore       Decimal  @db.Decimal(18, 6)
+  balanceAfter        Decimal  @db.Decimal(18, 6)
+  dodoPaymentId       String?
+  txSignature         String?
+  reason              String
+  rawPayload          Json?
+  createdAt           DateTime @default(now())
+  buyer               Buyer    @relation(fields: [buyerId], references: [id])
+}
+
+model DemoRun {
+  id             String   @id @default(cuid())
+  merchantId     String
+  providerId     String?
+  idempotencyKey String
+  rawStatus      String
+  endpointSlug   String
+  amountUsd      Decimal  @db.Decimal(12, 6)
+  txSignature    String?
+  dodoPaymentId  String?
+  steps          Json
+  createdAt      DateTime @default(now())
+  merchant       Merchant @relation(fields: [merchantId], references: [id])
+}
