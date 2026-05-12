@@ -4,7 +4,7 @@ import { APP_URL, CREDIT_PACKS, DODO_PAYMENT_FALLBACKS, DODO_STABLECOIN_METHOD }
 import type { CreditPackInput, UsageEventInput } from "@/lib/schemas";
 import { makeId } from "@/lib/utils";
 
-const dodoEnv = process.env.DODO_PAYMENTS_ENVIRONMENT ?? "test_mode";
+const dodoEnv = (process.env.DODO_PAYMENTS_ENVIRONMENT ?? "test_mode") as "live_mode" | "test_mode";
 
 function hasDodoCredentials() {
   return Boolean(process.env.DODO_PAYMENTS_API_KEY);

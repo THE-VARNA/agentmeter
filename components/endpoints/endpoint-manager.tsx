@@ -164,7 +164,7 @@ export function EndpointManager({ initialEndpoints }: { initialEndpoints: Endpoi
               type="search"
             />
           </label>
-          <StatusPill tone="neutral">
+          <StatusPill tone="pending">
             <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden="true" />
             HTTPS or demo-local only
           </StatusPill>
