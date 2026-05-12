@@ -1,5 +1,7 @@
 # AgentMeter ⚡️
 
+A Dodo + x402 gateway that lets AI/API companies sell metered MCP tools and APIs directly to autonomous agents using Solana stablecoin micro-payments. Target User & Pain Point: AI API founders and MCP server builders who want agents to pay per request without forcing API keys, accounts, invoices, or monthly subscriptions.
+
 🏆 **Hackathon Track:** Payments & Finance on Solana + Dodo Payments
 - ✅ **Stablecoin payments:** USDC on Solana Devnet (via x402 protocol)
 - ✅ **Dodo Payments integration:** Checkout Sessions, Usage Events, Webhooks, Credit Ledger
@@ -11,6 +13,7 @@ AgentMeter is a **Solana stablecoin payment rail for the API economy**. It enabl
 
 ## 🛑 The Problem
 
+
 The AI agent economy is booming, but **billing is broken for machines**.
 - AI agents cannot hold bank accounts or traditional credit cards.
 - API subscriptions are too rigid for unpredictable agent usage patterns.
@@ -18,6 +21,9 @@ The AI agent economy is booming, but **billing is broken for machines**.
 - Setting up API keys and OAuth for every new agent integration creates massive friction.
 
 ## 💡 The Solution
+
+
+
 
 **AgentMeter** bridges this gap by wrapping any API in an **HTTP 402 Payment Required** gateway. 
 
