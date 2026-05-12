@@ -26,6 +26,11 @@ export const CREDIT_PACKS = [
   { amountUsd: 25, credits: 30000, label: "Scale" }
 ] as const;
 
+export const SUBSCRIPTION_PLANS = [
+  { productId: process.env.DODO_PRODUCT_ID_PRO ?? "pdt_0NegYvrRwoCWzis31p52k", amountUsd: 29, calls: 50000, label: "Pro" },
+  { productId: process.env.DODO_PRODUCT_ID_ENTERPRISE ?? "pdt_0NegYwDsmprXaRFNxwguC", amountUsd: 99, calls: 250000, label: "Enterprise" }
+] as const;
+
 export const OFFICIAL_SOURCE_NOTES = [
   "Dodo stablecoin checkout: USD billed, global excluding India, no subscriptions, $0.50 minimum, method type documented as crypto.",
   "Dodo usage billing: send events with event_id, customer_id, event_name, timestamp, metadata; meters aggregate Count/Sum/Max/Last.",

@@ -5,7 +5,7 @@ import { CheckCircle, CreditCard, ExternalLink, Loader2, WalletCards } from "luc
 import { useState } from "react";
 
 import { DodoOverlay } from "@/components/credits/dodo-overlay";
-import { CREDIT_PACKS, DODO_STABLECOIN_METHOD } from "@/lib/constants";
+import { CREDIT_PACKS, DODO_STABLECOIN_METHOD, SUBSCRIPTION_PLANS } from "@/lib/constants";
 import type { Buyer, DodoCheckout } from "@/lib/types";
 import { formatCompact, formatUsd } from "@/lib/utils";
 
@@ -22,19 +22,24 @@ export function CreditsClient({ buyer: initialBuyer, initialCheckouts }: { buyer
   const [overlayUrl, setOverlayUrl] = useState<string | null>(null);
   const [justUpdated, setJustUpdated] = useState(false);
 
-  async function createCheckout(amountUsd: number) {
+  async function createCheckout(amountUsd: number, isSub = false, productId?: string) {
     setCheckoutLoading(amountUsd); setError(null);
     try {
-      const res = await fetch("/api/dodo/checkout/credit-pack", {
+      const endpoint = isSub ? "/api/dodo/checkout/subscription" : "/api/dodo/checkout/credit-pack";
+      const bodyPayload = isSub ? { productId } : { amountUsd, buyerId: initialBuyer.id };
+      const res = await fetch(endpoint, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amountUsd, buyerId: initialBuyer.id })
+        body: JSON.stringify(bodyPayload)
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.detail ?? body.error ?? "Checkout failed");
-      setCheckouts(c => [body.checkout, ...c]);
-      setPendingCheckout({ amountUsd, checkoutUrl: body.checkout.checkoutUrl });
+      
+      if (!isSub) {
+        setCheckouts(c => [body.checkout, ...c]);
+      }
+      setPendingCheckout({ amountUsd, checkoutUrl: isSub ? body.checkoutUrl : body.checkout.checkoutUrl });
       // Open checkout in overlay iframe instead of new tab
-      setOverlayUrl(body.checkout.checkoutUrl);
+      setOverlayUrl(isSub ? body.checkoutUrl : body.checkout.checkoutUrl);
     } catch (e) { setError(e instanceof Error ? e.message : "Checkout failed"); }
     finally { setCheckoutLoading(null); }
   }
@@ -52,7 +57,9 @@ export function CreditsClient({ buyer: initialBuyer, initialCheckouts }: { buyer
         body: JSON.stringify({ amountUsd })
       });
       const pack = CREDIT_PACKS.find(p => Math.abs(p.amountUsd - amountUsd) < 0.01);
-      const credits = pack?.credits ?? Math.round(amountUsd * 1000);
+      const sub = SUBSCRIPTION_PLANS.find(p => Math.abs(p.amountUsd - amountUsd) < 0.01);
+      const credits = pack?.credits ?? sub?.calls ?? Math.round(amountUsd * 1000);
+      
       setBalance(prev => prev + credits);
       setJustUpdated(true);
       setTimeout(() => setJustUpdated(false), 4000);
@@ -165,6 +172,7 @@ export function CreditsClient({ buyer: initialBuyer, initialCheckouts }: { buyer
       </AnimatePresence>
 
       {/* Credit packs */}
+      <h3 style={{ margin: "32px 0 16px", fontSize: 16, fontWeight: 500, color: "#fff" }}>One-Time Top Ups</h3>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}>
         {CREDIT_PACKS.map((pack, i) => {
           const color = packColors[i];
@@ -213,6 +221,62 @@ export function CreditsClient({ buyer: initialBuyer, initialCheckouts }: { buyer
               >
                 {isLoading ? <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> : <CreditCard size={14} />}
                 {isLoading ? "Opening Dodo…" : "Buy with Dodo (test mode)"}
+              </motion.button>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* Subscription Plans */}
+      <h3 style={{ margin: "32px 0 16px", fontSize: 16, fontWeight: 500, color: "#fff" }}>Monthly Subscriptions</h3>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}>
+        {SUBSCRIPTION_PLANS.map((plan, i) => {
+          const color = packColors[(i + 1) % packColors.length];
+          const bg = packBgs[(i + 1) % packBgs.length];
+          const isLoading = checkoutLoading === plan.amountUsd;
+
+          return (
+            <motion.div key={plan.productId}
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 + i * 0.1 }}
+              whileHover={{ y: -4, transition: { duration: 0.2 } }}
+              className="hover-gradient-border"
+              style={{
+                background: "linear-gradient(135deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02))",
+                border: "1px solid rgba(255,255,255,0.09)",
+                borderRadius: 16, padding: "24px 22px",
+                backdropFilter: "blur(20px)", cursor: "default"
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 20 }}>
+                <div>
+                  <p style={{ margin: 0, fontSize: 12, color: "#8899aa", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase" }}>{plan.label}</p>
+                  <p style={{ margin: "8px 0 0", fontSize: 38, fontWeight: 900, color: "#eef2f7", letterSpacing: "-0.04em" }}>{formatUsd(plan.amountUsd)}<span style={{ fontSize: 16, color: "#8899aa", fontWeight: 500 }}>/mo</span></p>
+                </div>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: bg, border: `1px solid ${color}28`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <WalletCards size={20} color={color} />
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 20 }}>
+                <span style={{ fontSize: 22, fontWeight: 800, color }}>{formatCompact(plan.calls)}</span>
+                <span style={{ fontSize: 14, color: "#8899aa", marginLeft: 6 }}>API calls/mo</span>
+              </div>
+
+              <motion.button
+                whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
+                onClick={() => createCheckout(plan.amountUsd, true, plan.productId)}
+                disabled={isLoading}
+                style={{
+                  width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                  padding: "11px 0", borderRadius: 10, fontSize: 14, fontWeight: 700,
+                  background: `linear-gradient(135deg, ${color}20, ${color}10)`,
+                  border: `1px solid ${color}40`, color,
+                  cursor: isLoading ? "not-allowed" : "pointer",
+                  opacity: isLoading ? 0.6 : 1, transition: "all 200ms"
+                }}
+              >
+                {isLoading ? <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> : <CreditCard size={14} />}
+                {isLoading ? "Opening Dodo…" : "Subscribe with Dodo"}
               </motion.button>
             </motion.div>
           );

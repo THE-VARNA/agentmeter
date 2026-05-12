@@ -45,15 +45,35 @@ function StatusPill({ status }: { status: string }) {
 export default function DashboardPage() {
   const [state, setState] = useState<AppState | null>(null);
   const [ledger, setLedger] = useState<LedgerItem[]>([]);
+  const [dodoRevenue, setDodoRevenue] = useState<{
+    totalRevenueUsd: number;
+    netRevenueUsd: number;
+    succeededPayments: number;
+    refundsCount: number;
+    mode: string;
+  } | null>(null);
 
   useEffect(() => {
     fetch("/api/demo/state")
       .then(r => r.json())
       .then(d => { setState(d.state); setLedger(d.ledger?.slice(0, 6) ?? []); });
+
+    // Fetch real Dodo test-mode revenue
+    fetch("/api/dodo/revenue")
+      .then(r => r.json())
+      .then(setDodoRevenue)
+      .catch(() => {}); // non-blocking
   }, []);
 
   const metrics = state ? [
-    { label: "Metered revenue", value: formatUsd(state.endpoints.reduce((s, e) => s + e.revenueUsd, 0)), detail: "From fulfilled x402 requests and Dodo usage events.", icon: DollarSign, color: "#34d399", bg: "rgba(52,211,153,0.1)" },
+    {
+      label: "Dodo revenue (test mode)",
+      value: dodoRevenue ? `$${dodoRevenue.netRevenueUsd.toFixed(2)}` : formatUsd(state.endpoints.reduce((s, e) => s + e.revenueUsd, 0)),
+      detail: dodoRevenue
+        ? `${dodoRevenue.succeededPayments} succeeded · ${dodoRevenue.refundsCount} refunds · ${dodoRevenue.mode}`
+        : "From fulfilled x402 requests and Dodo usage events.",
+      icon: DollarSign, color: "#34d399", bg: "rgba(52,211,153,0.1)"
+    },
     { label: "API requests", value: formatCompact(state.endpoints.reduce((s, e) => s + e.requestCount, 0)), detail: "Every successful call creates an auditable gateway request.", icon: Activity, color: "#22d3ee", bg: "rgba(34,211,238,0.1)" },
     { label: "Active endpoints", value: String(state.endpoints.filter(e => e.active).length), detail: "Merchant-owned routes protected by HTTP 402 payments.", icon: Cable, color: "#fbbf24", bg: "rgba(251,191,36,0.1)" },
     { label: "Agent credits", value: formatCompact(state.buyers[0]?.creditBalance ?? 0), detail: "Dodo credit balance mirrored for the demo buyer.", icon: Coins, color: "#818cf8", bg: "rgba(129,140,248,0.1)" },

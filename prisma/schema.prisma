@@ -62,6 +62,7 @@ model Buyer {
   x402Payments       X402Payment[]
   dodoCheckouts      DodoCheckout[]
   creditLedgerEntries CreditLedgerEntry[]
+  licenseKeys        LicenseKey[]
 }
 
 model ApiCredential {
@@ -186,3 +187,20 @@ model DemoRun {
   createdAt      DateTime @default(now())
   merchant       Merchant @relation(fields: [merchantId], references: [id])
 }
+
+model LicenseKey {
+  id            String   @id @default(cuid())
+  buyerId       String
+  endpointId    String?
+  dodoKeyId     String   @unique          // Dodo licenseKeys id (lic_...)
+  key           String   @unique          // The actual key string sent in headers
+  productId     String
+  status        String   @default("active") // active | expired | disabled
+  activationsLimit Int?
+  expiresAt     DateTime?
+  dodoPaymentId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  buyer         Buyer    @relation(fields: [buyerId], references: [id])
+}
+
