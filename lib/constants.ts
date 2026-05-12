@@ -1,5 +1,5 @@
 export const DODO_STABLECOIN_METHOD =
-  (process.env.DODO_STABLECOIN_METHOD ?? "crypto") as "crypto" | "crypto_currency";
+  (process.env.DODO_STABLECOIN_METHOD ?? "crypto_currency") as "crypto_currency";
 
 export const DODO_PAYMENT_FALLBACKS = ["credit", "debit"] as const;
 

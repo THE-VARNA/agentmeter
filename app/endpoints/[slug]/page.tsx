@@ -11,8 +11,9 @@ import { formatUsd } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-export default function EndpointDetailPage({ params }: { params: { slug: string } }) {
-  const endpoint = findEndpoint(params.slug);
+export default async function EndpointDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const endpoint = findEndpoint(slug);
   if (!endpoint) {
     notFound();
   }
