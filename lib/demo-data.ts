@@ -36,6 +36,8 @@ export async function getStore(): Promise<AppState> {
   return {
     merchant: {
       ...merchant,
+      dodoBusinessId: merchant.dodoBusinessId ?? undefined,
+      dodoCustomerId: merchant.dodoCustomerId ?? undefined,
       createdAt: merchant.createdAt.toISOString(),
       updatedAt: merchant.updatedAt.toISOString()
     },
@@ -47,6 +49,8 @@ export async function getStore(): Promise<AppState> {
     })),
     endpoints: endpoints.map(e => ({
       ...e,
+      method: e.method as Endpoint["method"],
+      dodoMeterId: e.dodoMeterId ?? "",
       priceUsd: Number(e.priceUsd),
       revenueUsd: Number(e.revenueUsd),
       createdAt: e.createdAt.toISOString(),
@@ -54,28 +58,53 @@ export async function getStore(): Promise<AppState> {
     })),
     gatewayRequests: gateways.map(g => ({
       ...g,
+      method: g.method as Endpoint["method"],
+      buyerId: g.buyerId ?? undefined,
+      providerId: g.providerId ?? undefined,
+      txSignature: g.txSignature ?? undefined,
+      dodoPaymentId: g.dodoPaymentId ?? undefined,
+      errorCode: g.errorCode ?? undefined,
+      requestBody: g.requestBody ? g.requestBody : undefined,
+      responseBody: g.responseBody ? g.responseBody : undefined,
       amountUsd: Number(g.amountUsd),
       createdAt: g.createdAt.toISOString()
     })),
     x402Payments: x402s.map(x => ({
       ...x,
+      scheme: x.scheme as "exact",
+      settlementStatus: x.settlementStatus as any,
+      buyerId: x.buyerId ?? undefined,
+      gatewayRequestId: x.gatewayRequestId ?? undefined,
+      providerId: x.providerId ?? undefined,
+      txSignature: x.txSignature ?? undefined,
+      rawPayload: x.rawPayload ? x.rawPayload : undefined,
       amountUsd: Number(x.amountUsd),
       createdAt: x.createdAt.toISOString()
     })),
     dodoCheckouts: checkouts.map(c => ({
       ...c,
+      buyerId: c.buyerId ?? undefined,
+      providerId: c.providerId ?? undefined,
+      dodoPaymentId: c.dodoPaymentId ?? undefined,
+      rawPayload: c.rawPayload ? c.rawPayload : undefined,
       amountUsd: Number(c.amountUsd),
       createdAt: c.createdAt.toISOString(),
       updatedAt: c.updatedAt.toISOString()
     })),
     dodoWebhookEvents: webhooks.map(w => ({
       ...w,
+      txSignature: w.txSignature ?? undefined,
+      dodoPaymentId: w.dodoPaymentId ?? undefined,
       parsedAmount: w.parsedAmount ? Number(w.parsedAmount) : undefined,
       processedAt: w.processedAt?.toISOString(),
       createdAt: w.createdAt.toISOString()
     })),
     creditLedgerEntries: ledgers.map(l => ({
       ...l,
+      providerId: l.providerId ?? undefined,
+      dodoPaymentId: l.dodoPaymentId ?? undefined,
+      txSignature: l.txSignature ?? undefined,
+      rawPayload: l.rawPayload ? l.rawPayload : undefined,
       amount: Number(l.amount),
       balanceBefore: Number(l.balanceBefore),
       balanceAfter: Number(l.balanceAfter),
@@ -83,6 +112,9 @@ export async function getStore(): Promise<AppState> {
     })),
     demoRuns: demos.map(d => ({
       ...d,
+      providerId: d.providerId ?? undefined,
+      txSignature: d.txSignature ?? undefined,
+      dodoPaymentId: d.dodoPaymentId ?? undefined,
       amountUsd: Number(d.amountUsd),
       createdAt: d.createdAt.toISOString(),
       steps: d.steps as any

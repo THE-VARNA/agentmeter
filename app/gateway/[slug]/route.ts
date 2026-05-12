@@ -28,7 +28,7 @@ async function handleGatewayRequest(
 ) {
   const startedAt = Date.now();
   const store = await getStore();
-  const endpoint = findEndpoint(slug);
+  const endpoint = await findEndpoint(slug);
   const buyer = store.buyers[0];
 
   if (!endpoint) {
@@ -48,7 +48,7 @@ async function handleGatewayRequest(
   }
 
   const remote = request.headers.get("x-forwarded-for") ?? "local";
-  const limit = checkRateLimit(`${remote}:${endpoint.slug}`, 120);
+  const limit = await checkRateLimit(`${remote}:${endpoint.slug}`, 120);
   if (!limit.allowed) {
     return NextResponse.json(
       { error: "rate_limited", resetAt: new Date(limit.resetAt).toISOString() },
@@ -70,7 +70,7 @@ async function handleGatewayRequest(
 
   const verification = verifyDemoPaymentHeader(paymentHeader, endpoint, store.merchant.solanaWallet);
   if (!verification.valid) {
-    recordGatewayRequest({
+    await recordGatewayRequest({
       endpointId: endpoint.id,
       buyerId: buyer?.id,
       method,
@@ -103,7 +103,7 @@ async function handleGatewayRequest(
   const dodoUsage = await ingestDodoUsageEvent(usageEvent);
 
   const idempotencyKey = `gateway_${endpoint.slug}_${verification.signature}`;
-  const gatewayRequest = recordGatewayRequest({
+  const gatewayRequest = await recordGatewayRequest({
     endpointId: endpoint.id,
     buyerId: buyer?.id,
     method,
@@ -119,7 +119,7 @@ async function handleGatewayRequest(
     responseBody
   });
 
-  recordX402Payment({
+  await recordX402Payment({
     endpointId: endpoint.id,
     buyerId: buyer?.id,
     gatewayRequestId: gatewayRequest.id,

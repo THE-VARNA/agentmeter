@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { CREDIT_PACKS } from "@/lib/constants";
 import { getStore, recordCheckout } from "@/lib/demo-data";
+import { prisma } from "@/lib/db";
 import { createDodoCreditPackCheckout, createOrGetDodoCustomer } from "@/lib/dodo";
 import { creditPackSchema } from "@/lib/schemas";
 
@@ -23,10 +24,12 @@ export async function POST(request: Request) {
       existingCustomerId: buyer.dodoCustomerId
     });
 
-    // Persist the Dodo customer ID back to the buyer record
-    if (isNew || !buyer.dodoCustomerId) {
-      buyer.dodoCustomerId = customerId;
-      buyer.updatedAt = new Date().toISOString();
+    // Persist the Dodo customer ID back to the DB buyer record
+    if (isNew || !buyer.dodoCustomerId || buyer.dodoCustomerId.startsWith("demo_cus")) {
+      await prisma.buyer.update({
+        where: { id: buyer.id },
+        data: { dodoCustomerId: customerId }
+      });
     }
 
     // ── Step 2: Create checkout session with the real customer_id ─────────────
@@ -35,7 +38,7 @@ export async function POST(request: Request) {
       dodoCustomerId: customerId
     });
 
-    const record = recordCheckout({
+    const record = await recordCheckout({
       merchantId: store.merchant.id,
       buyerId: buyer.id,
       providerId: checkout.providerId,

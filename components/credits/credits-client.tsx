@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle, CreditCard, ExternalLink, Loader2, WalletCards } from "lucide-react";
 import { useState } from "react";
 
+import { DodoOverlay } from "@/components/credits/dodo-overlay";
 import { CREDIT_PACKS, DODO_STABLECOIN_METHOD } from "@/lib/constants";
 import type { Buyer, DodoCheckout } from "@/lib/types";
 import { formatCompact, formatUsd } from "@/lib/utils";
@@ -18,6 +19,7 @@ export function CreditsClient({ buyer: initialBuyer, initialCheckouts }: { buyer
   const [simulateLoading, setSimulateLoading] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pendingCheckout, setPendingCheckout] = useState<{ amountUsd: number; checkoutUrl: string } | null>(null);
+  const [overlayUrl, setOverlayUrl] = useState<string | null>(null);
   const [justUpdated, setJustUpdated] = useState(false);
 
   async function createCheckout(amountUsd: number) {
@@ -31,12 +33,15 @@ export function CreditsClient({ buyer: initialBuyer, initialCheckouts }: { buyer
       if (!res.ok) throw new Error(body.detail ?? body.error ?? "Checkout failed");
       setCheckouts(c => [body.checkout, ...c]);
       setPendingCheckout({ amountUsd, checkoutUrl: body.checkout.checkoutUrl });
-      window.open(body.checkout.checkoutUrl, "_blank", "noopener,noreferrer");
-
-      // Auto-apply credits after 3s — simulates webhook delivery
-      setTimeout(() => applyCredits(amountUsd), 3000);
+      // Open checkout in overlay iframe instead of new tab
+      setOverlayUrl(body.checkout.checkoutUrl);
     } catch (e) { setError(e instanceof Error ? e.message : "Checkout failed"); }
     finally { setCheckoutLoading(null); }
+  }
+
+  function handleOverlaySuccess(amountUsd: number) {
+    setOverlayUrl(null);
+    applyCredits(amountUsd);
   }
 
   async function applyCredits(amountUsd: number) {
@@ -62,6 +67,14 @@ export function CreditsClient({ buyer: initialBuyer, initialCheckouts }: { buyer
 
   return (
     <div style={{ display: "grid", gap: 20 }}>
+      {/* Dodo Overlay Modal */}
+      {overlayUrl && pendingCheckout && (
+        <DodoOverlay
+          checkoutUrl={overlayUrl}
+          onClose={() => setOverlayUrl(null)}
+          onSuccess={() => handleOverlaySuccess(pendingCheckout.amountUsd)}
+        />
+      )}
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
         <div className="glass" style={{ borderRadius: 16, padding: "24px 28px" }}>
@@ -199,7 +212,7 @@ export function CreditsClient({ buyer: initialBuyer, initialCheckouts }: { buyer
                 }}
               >
                 {isLoading ? <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> : <CreditCard size={14} />}
-                {isLoading ? "Opening Dodo…" : "Launch Dodo checkout"}
+                {isLoading ? "Opening Dodo…" : "Buy with Dodo (test mode)"}
               </motion.button>
             </motion.div>
           );

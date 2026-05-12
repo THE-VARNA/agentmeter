@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   try {
     const payload = demoRunSchema.parse(await request.json().catch(() => ({})));
     const store = await getStore();
-    const endpoint = findEndpoint(payload.endpointSlug);
+    const endpoint = await findEndpoint(payload.endpointSlug);
     const buyer = store.buyers[0];
 
     if (!endpoint || !buyer) {
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     const dodoUsage = await ingestDodoUsageEvent(usageEvent);
     const idempotencyKey = `demo_${endpoint.slug}_${verification.signature}`;
 
-    const gatewayRequest = recordGatewayRequest({
+    const gatewayRequest = await recordGatewayRequest({
       endpointId: endpoint.id,
       buyerId: buyer.id,
       method: endpoint.method,
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
       responseBody: upstreamResponse
     });
 
-    const payment = recordX402Payment({
+    const payment = await recordX402Payment({
       endpointId: endpoint.id,
       buyerId: buyer.id,
       gatewayRequestId: gatewayRequest.id,
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
       rawPayload: verification.rawPayload
     });
 
-    const creditEntry = adjustCredits({
+    const creditEntry = await adjustCredits({
       buyerId: buyer.id,
       amount: -1,
       eventType: "credit.deducted",
@@ -86,7 +86,7 @@ export async function POST(request: Request) {
       rawPayload: dodoUsage.rawPayload
     });
 
-    const demoRun = recordDemoRun({
+    const demoRun = await recordDemoRun({
       merchantId: store.merchant.id,
       providerId: verification.providerId,
       idempotencyKey,

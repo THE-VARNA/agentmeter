@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 export default async function EndpointDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const endpoint = findEndpoint(slug);
+  const endpoint = await findEndpoint(slug);
   if (!endpoint) {
     notFound();
   }

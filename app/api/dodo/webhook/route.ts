@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     const store = await getStore();
 
     // Record the raw webhook event (idempotent)
-    const event = recordWebhook({
+    const event = await recordWebhook({
       merchantId: store.merchant.id,
       providerId: parsed.providerId,
       idempotencyKey: parsed.providerId,
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
       if (buyer && credits > 0) {
         const idempotencyKey = `webhook_credit_${parsed.providerId}_${parsed.dodoPaymentId}`;
 
-        creditEntry = adjustCredits({
+        creditEntry = await adjustCredits({
           buyerId: buyer.id,
           amount: credits,
           eventType: "credit.added",

@@ -4,13 +4,14 @@ import { addEndpoint, getSerializableState } from "@/lib/demo-data";
 import { endpointSchema } from "@/lib/schemas";
 
 export async function GET() {
-  return NextResponse.json({ endpoints: getSerializableState().endpoints });
+  const state = await getSerializableState();
+  return NextResponse.json({ endpoints: state.endpoints });
 }
 
 export async function POST(request: Request) {
   try {
     const payload = endpointSchema.parse(await request.json());
-    const endpoint = addEndpoint(payload);
+    const endpoint = await addEndpoint(payload);
 
     return NextResponse.json({ endpoint }, { status: 201 });
   } catch (error) {

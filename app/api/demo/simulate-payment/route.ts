@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     const credits = pack?.credits ?? Math.round(amountUsd * 1000);
 
     const idempotencyKey = `simulate_credit_${Date.now()}`;
-    const entry = adjustCredits({
+    const entry = await adjustCredits({
       buyerId: buyer.id,
       amount: credits,
       eventType: "credit.added",

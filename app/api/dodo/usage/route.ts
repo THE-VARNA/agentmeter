@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     const result = await ingestDodoUsageEvent(event);
 
     if (buyer) {
-      adjustCredits({
+      await adjustCredits({
         buyerId: buyer.id,
         amount: -1,
         eventType: "credit.deducted",

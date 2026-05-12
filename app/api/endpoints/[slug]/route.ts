@@ -4,7 +4,7 @@ import { findEndpoint, getSerializableState } from "@/lib/demo-data";
 
 export async function GET(_request: Request, context: { params: Promise<{ slug: string }> }) {
   const { slug } = await context.params;
-  const endpoint = findEndpoint(slug);
+  const endpoint = await findEndpoint(slug);
 
   if (!endpoint) {
     return NextResponse.json({ error: "endpoint_not_found" }, { status: 404 });
