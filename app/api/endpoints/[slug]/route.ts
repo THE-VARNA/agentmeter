@@ -10,7 +10,7 @@ export async function GET(_request: Request, context: { params: Promise<{ slug: 
     return NextResponse.json({ error: "endpoint_not_found" }, { status: 404 });
   }
 
-  const state = getSerializableState();
+  const state = await getSerializableState();
   return NextResponse.json({
     endpoint,
     requests: state.gatewayRequests.filter((request) => request.endpointId === endpoint.id),

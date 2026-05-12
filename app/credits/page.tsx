@@ -3,7 +3,7 @@ import { getSerializableState } from "@/lib/demo-data";
 
 export const dynamic = "force-dynamic";
 
-export default function CreditsPage() {
-  const state = getSerializableState();
+export default async function CreditsPage() {
+  const state = await getSerializableState();
   return <CreditsClient buyer={state.buyers[0]} initialCheckouts={state.dodoCheckouts} />;
 }

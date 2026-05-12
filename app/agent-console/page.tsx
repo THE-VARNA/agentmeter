@@ -3,7 +3,7 @@ import { getSerializableState } from "@/lib/demo-data";
 
 export const dynamic = "force-dynamic";
 
-export default function AgentConsolePage() {
-  const state = getSerializableState();
+export default async function AgentConsolePage() {
+  const state = await getSerializableState();
   return <AgentConsoleClient initialRun={state.demoRuns[0]} />;
 }

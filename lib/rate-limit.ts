@@ -1,7 +1,7 @@
 import { getStore } from "@/lib/demo-data";
 
 export function checkRateLimit(key: string, limit = 60, windowMs = 60_000) {
-  const store = getStore();
+  const store = await getStore();
   const now = Date.now();
   const current = store.rateLimits.get(key);
 

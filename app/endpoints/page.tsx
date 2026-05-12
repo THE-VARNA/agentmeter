@@ -3,6 +3,6 @@ import { getSerializableState } from "@/lib/demo-data";
 
 export const dynamic = "force-dynamic";
 
-export default function EndpointsPage() {
+export default async function EndpointsPage() {
   return <EndpointManager initialEndpoints={getSerializableState().endpoints} />;
 }

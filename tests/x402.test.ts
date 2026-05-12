@@ -5,7 +5,7 @@ import { buildX402Requirement, createDemoPaymentPayload, verifyDemoPaymentHeader
 
 describe("x402 helpers", () => {
   it("builds an exact Solana requirement", () => {
-    const store = getStore();
+    const store = await getStore();
     const requirement = buildX402Requirement(store.endpoints[0], store.merchant);
 
     expect(requirement.x402Version).toBe(2);
@@ -14,7 +14,7 @@ describe("x402 helpers", () => {
   });
 
   it("verifies deterministic demo payloads", () => {
-    const store = getStore();
+    const store = await getStore();
     const endpoint = store.endpoints[0];
     const payment = createDemoPaymentPayload(endpoint, store.merchant.solanaWallet);
     const result = verifyDemoPaymentHeader(payment.encoded, endpoint, store.merchant.solanaWallet);

@@ -1,343 +1,215 @@
-import {
-  APP_URL,
-  MERCHANT_WALLET,
-  X402_FACILITATOR_URL,
-  X402_NETWORK
-} from "@/lib/constants";
-import type {
-  AppState,
-  Buyer,
-  CreditLedgerEntry,
-  DemoRun,
-  Endpoint,
-  GatewayRequest,
-  LedgerItem,
-  Merchant,
-  X402Payment,
-  DodoCheckout,
-  DodoWebhookEvent
-} from "@/lib/types";
-import { makeId, nowIso } from "@/lib/utils";
+import { prisma } from "./db";
+import { makeId, nowIso } from "./utils";
+import type { 
+  AppState, Buyer, CreditLedgerEntry, DemoRun, Endpoint, GatewayRequest, LedgerItem, Merchant, X402Payment, DodoCheckout, DodoWebhookEvent 
+} from "./types";
+import { CREDIT_PACKS, MERCHANT_WALLET, X402_FACILITATOR_URL, X402_NETWORK } from "./constants";
 
-type MutableStore = AppState & {
-  rateLimits: Map<string, { count: number; resetAt: number }>;
-  idempotencyKeys: Set<string>;
-};
-
-const globalForAgentMeter = globalThis as unknown as {
-  agentMeterStore?: MutableStore;
-};
-
-function seedMerchant(): Merchant {
-  const timestamp = nowIso();
-  return {
-    id: "mer_demo",
-    name: "AgentMeter Demo",
-    slug: "agentmeter-demo",
-    dodoBusinessId: "biz_demo_agentmeter",
-    dodoCustomerId: "cus_demo_merchant",
-    solanaWallet: MERCHANT_WALLET,
-    x402Network: X402_NETWORK,
-    facilitatorUrl: X402_FACILITATOR_URL,
-    createdAt: timestamp,
-    updatedAt: timestamp
-  };
-}
-
-function seedBuyer(merchantId: string): Buyer {
-  const timestamp = nowIso();
-  return {
-    id: "buy_demo",
-    merchantId,
-    email: "agent@buyer.example",
-    name: "Autonomous Research Agent",
-    agentWallet: "Fh3DemoAgent111111111111111111111111111111111",
-    dodoCustomerId: "cus_demo_agent",
-    creditBalance: 25000,
-    createdAt: timestamp,
-    updatedAt: timestamp
-  };
-}
-
-function seedEndpoints(merchantId: string): Endpoint[] {
-  const timestamp = nowIso();
-  return [
-    {
-      id: "end_weather",
-      merchantId,
-      name: "Weather Alpha",
-      slug: "weather-alpha",
-      method: "GET",
-      upstreamUrl: "/api/mock/weather-alpha",
-      priceUsd: 0.001,
-      description: "Premium weather signal for autonomous logistics agents",
-      mimeType: "application/json",
-      active: true,
-      dodoMeterId: "mtr_demo_api_call",
-      requestCount: 1248,
-      revenueUsd: 14.82,
-      createdAt: timestamp,
-      updatedAt: timestamp
-    },
-    {
-      id: "end_risk",
-      merchantId,
-      name: "Risk Score",
-      slug: "risk-score",
-      method: "GET",
-      upstreamUrl: "/api/mock/risk-score",
-      priceUsd: 0.01,
-      description: "Transaction risk score for AI finance agents",
-      mimeType: "application/json",
-      active: true,
-      dodoMeterId: "mtr_demo_api_call",
-      requestCount: 392,
-      revenueUsd: 18.6,
-      createdAt: timestamp,
-      updatedAt: timestamp
-    }
-  ];
-}
-
-function createInitialStore(): MutableStore {
-  const merchant = seedMerchant();
-  const buyer = seedBuyer(merchant.id);
-  const endpoints = seedEndpoints(merchant.id);
-  const now = Date.now();
-  const ts = (offsetMs: number) => new Date(now - offsetMs).toISOString();
-
-  const seedGatewayRequests: GatewayRequest[] = [
-    {
-      id: "gw_seed_001", endpointId: "end_weather", buyerId: buyer.id,
-      method: "GET", path: "/gateway/weather-alpha", statusCode: 200,
-      rawStatus: "fulfilled", providerId: "demo_sig_seed_001",
-      idempotencyKey: "seed_gw_001", latencyMs: 182, amountUsd: 0.001,
-      txSignature: "seed_tx_4xDEMO1aGW7ZkU9P2hQnLmFv3YrBsC8oKjX5wEtNiVp",
-      createdAt: ts(420000)
-    },
-    {
-      id: "gw_seed_002", endpointId: "end_risk", buyerId: buyer.id,
-      method: "GET", path: "/gateway/risk-score", statusCode: 200,
-      rawStatus: "fulfilled", providerId: "demo_sig_seed_002",
-      idempotencyKey: "seed_gw_002", latencyMs: 241, amountUsd: 0.01,
-      txSignature: "seed_tx_9yRISK2bHX8MnV4cF6wPqAuE1ZoKjL7gDtSmWiCvBr",
-      createdAt: ts(300000)
-    },
-    {
-      id: "gw_seed_003", endpointId: "end_weather", buyerId: buyer.id,
-      method: "GET", path: "/gateway/weather-alpha", statusCode: 200,
-      rawStatus: "fulfilled", providerId: "demo_sig_seed_003",
-      idempotencyKey: "seed_gw_003", latencyMs: 167, amountUsd: 0.001,
-      txSignature: "seed_tx_3mWEATH5cPq2xL8kD9nVfBgYrJoZiU6tEsAhNwCvXm",
-      createdAt: ts(120000)
-    }
-  ];
-
-  const seedX402Payments: X402Payment[] = [
-    {
-      id: "x402_seed_001", endpointId: "end_weather", buyerId: buyer.id,
-      gatewayRequestId: "gw_seed_001", providerId: "demo_sig_seed_001",
-      idempotencyKey: "seed_x402_001", scheme: "exact",
-      network: merchant.x402Network, amountUsd: 0.001,
-      payTo: merchant.solanaWallet,
-      txSignature: "seed_tx_4xDEMO1aGW7ZkU9P2hQnLmFv3YrBsC8oKjX5wEtNiVp",
-      settlementStatus: "verified_devnet", rawStatus: "settled",
-      createdAt: ts(420000)
-    },
-    {
-      id: "x402_seed_002", endpointId: "end_risk", buyerId: buyer.id,
-      gatewayRequestId: "gw_seed_002", providerId: "demo_sig_seed_002",
-      idempotencyKey: "seed_x402_002", scheme: "exact",
-      network: merchant.x402Network, amountUsd: 0.01,
-      payTo: merchant.solanaWallet,
-      txSignature: "seed_tx_9yRISK2bHX8MnV4cF6wPqAuE1ZoKjL7gDtSmWiCvBr",
-      settlementStatus: "verified_devnet", rawStatus: "settled",
-      createdAt: ts(300000)
-    }
-  ];
-
-  const seedDemoRuns: DemoRun[] = [
-    {
-      id: "demo_seed_001", merchantId: merchant.id,
-      providerId: "demo_sig_seed_001", idempotencyKey: "seed_demo_001",
-      rawStatus: "completed", endpointSlug: "weather-alpha",
-      amountUsd: 0.001,
-      txSignature: "seed_tx_4xDEMO1aGW7ZkU9P2hQnLmFv3YrBsC8oKjX5wEtNiVp",
-      dodoPaymentId: "dodo_evt_seed_001",
-      steps: [],
-      createdAt: ts(420000)
-    }
-  ];
-
-  const seedCreditEntries: CreditLedgerEntry[] = [
-    {
-      id: "cle_seed",
-      buyerId: buyer.id,
-      providerId: "seed_credit_grant",
-      idempotencyKey: "seed_credit_grant",
-      eventType: "credit.added",
-      rawStatus: "seeded",
-      amount: 25000,
-      balanceBefore: 0,
-      balanceAfter: 25000,
-      reason: "Seeded hackathon demo credits for per-request API access",
-      createdAt: ts(600000)
-    },
-    {
-      id: "cle_seed_deduct_001",
-      buyerId: buyer.id,
-      providerId: "demo_sig_seed_001",
-      idempotencyKey: "seed_deduct_001",
-      eventType: "credit.deducted",
-      rawStatus: "demo_mode_ingested",
-      amount: -1,
-      balanceBefore: 25000,
-      balanceAfter: 24999,
-      reason: "Dodo usage event for weather-alpha",
-      txSignature: "seed_tx_4xDEMO1aGW7ZkU9P2hQnLmFv3YrBsC8oKjX5wEtNiVp",
-      createdAt: ts(420000)
-    },
-    {
-      id: "cle_seed_deduct_002",
-      buyerId: buyer.id,
-      providerId: "demo_sig_seed_002",
-      idempotencyKey: "seed_deduct_002",
-      eventType: "credit.deducted",
-      rawStatus: "demo_mode_ingested",
-      amount: -1,
-      balanceBefore: 24999,
-      balanceAfter: 24998,
-      reason: "Dodo usage event for risk-score",
-      txSignature: "seed_tx_9yRISK2bHX8MnV4cF6wPqAuE1ZoKjL7gDtSmWiCvBr",
-      createdAt: ts(300000)
-    }
-  ];
-
-  return {
-    merchant,
-    buyers: [{ ...buyer, creditBalance: 24998 }],
-    endpoints,
-    gatewayRequests: seedGatewayRequests,
-    x402Payments: seedX402Payments,
-    dodoCheckouts: [],
-    dodoWebhookEvents: [],
-    creditLedgerEntries: seedCreditEntries,
-    demoRuns: seedDemoRuns,
-    rateLimits: new Map(),
-    idempotencyKeys: new Set(["seed_credit_grant", "seed_gw_001", "seed_gw_002", "seed_gw_003", "seed_x402_001", "seed_x402_002", "seed_demo_001"])
-  };
-}
-
-
-export function getStore(): MutableStore {
-  if (!globalForAgentMeter.agentMeterStore) {
-    globalForAgentMeter.agentMeterStore = createInitialStore();
+export async function getStore(): Promise<AppState> {
+  const merchants = await prisma.merchant.findMany();
+  let merchant = merchants[0];
+  if (!merchant) {
+    // If empty DB, this shouldn't happen because of seed, but fallback
+    merchant = await prisma.merchant.create({
+      data: {
+        id: "mer_demo",
+        name: "AgentMeter Demo",
+        slug: "agentmeter-demo",
+        dodoBusinessId: "biz_demo_agentmeter",
+        dodoCustomerId: "cus_demo_merchant",
+        solanaWallet: MERCHANT_WALLET,
+        x402Network: X402_NETWORK,
+        facilitatorUrl: X402_FACILITATOR_URL,
+      }
+    });
   }
 
-  return globalForAgentMeter.agentMeterStore;
-}
+  const buyers = await prisma.buyer.findMany();
+  const endpoints = await prisma.endpoint.findMany();
+  const gateways = await prisma.gatewayRequest.findMany({ orderBy: { createdAt: 'desc' } });
+  const x402s = await prisma.x402Payment.findMany({ orderBy: { createdAt: 'desc' } });
+  const checkouts = await prisma.dodoCheckout.findMany({ orderBy: { createdAt: 'desc' } });
+  const webhooks = await prisma.dodoWebhookEvent.findMany({ orderBy: { createdAt: 'desc' } });
+  const ledgers = await prisma.creditLedgerEntry.findMany({ orderBy: { createdAt: 'desc' } });
+  const demos = await prisma.demoRun.findMany({ orderBy: { createdAt: 'desc' } });
 
-export function getSerializableState(): AppState {
-  const store = getStore();
   return {
-    merchant: store.merchant,
-    buyers: store.buyers,
-    endpoints: store.endpoints,
-    gatewayRequests: store.gatewayRequests,
-    x402Payments: store.x402Payments,
-    dodoCheckouts: store.dodoCheckouts,
-    dodoWebhookEvents: store.dodoWebhookEvents,
-    creditLedgerEntries: store.creditLedgerEntries,
-    demoRuns: store.demoRuns
+    merchant: {
+      ...merchant,
+      createdAt: merchant.createdAt.toISOString(),
+      updatedAt: merchant.updatedAt.toISOString()
+    },
+    buyers: buyers.map(b => ({
+      ...b,
+      creditBalance: Number(b.creditBalance),
+      createdAt: b.createdAt.toISOString(),
+      updatedAt: b.updatedAt.toISOString()
+    })),
+    endpoints: endpoints.map(e => ({
+      ...e,
+      priceUsd: Number(e.priceUsd),
+      revenueUsd: Number(e.revenueUsd),
+      createdAt: e.createdAt.toISOString(),
+      updatedAt: e.updatedAt.toISOString()
+    })),
+    gatewayRequests: gateways.map(g => ({
+      ...g,
+      amountUsd: Number(g.amountUsd),
+      createdAt: g.createdAt.toISOString()
+    })),
+    x402Payments: x402s.map(x => ({
+      ...x,
+      amountUsd: Number(x.amountUsd),
+      createdAt: x.createdAt.toISOString()
+    })),
+    dodoCheckouts: checkouts.map(c => ({
+      ...c,
+      amountUsd: Number(c.amountUsd),
+      createdAt: c.createdAt.toISOString(),
+      updatedAt: c.updatedAt.toISOString()
+    })),
+    dodoWebhookEvents: webhooks.map(w => ({
+      ...w,
+      parsedAmount: w.parsedAmount ? Number(w.parsedAmount) : undefined,
+      processedAt: w.processedAt?.toISOString(),
+      createdAt: w.createdAt.toISOString()
+    })),
+    creditLedgerEntries: ledgers.map(l => ({
+      ...l,
+      amount: Number(l.amount),
+      balanceBefore: Number(l.balanceBefore),
+      balanceAfter: Number(l.balanceAfter),
+      createdAt: l.createdAt.toISOString()
+    })),
+    demoRuns: demos.map(d => ({
+      ...d,
+      amountUsd: Number(d.amountUsd),
+      createdAt: d.createdAt.toISOString(),
+      steps: d.steps as any
+    }))
   };
 }
 
-export function findEndpoint(slug: string) {
-  return getStore().endpoints.find((endpoint) => endpoint.slug === slug);
+export async function getSerializableState() {
+  return await getStore();
 }
 
-export function addEndpoint(input: Omit<Endpoint, "id" | "merchantId" | "dodoMeterId" | "requestCount" | "revenueUsd" | "createdAt" | "updatedAt">) {
-  const store = getStore();
-  const existing = store.endpoints.find((endpoint) => endpoint.slug === input.slug);
+export async function findEndpoint(slug: string) {
+  const store = await getStore();
+  return store.endpoints.find(e => e.slug === slug);
+}
 
-  if (existing) {
-    throw new Error("Endpoint slug already exists");
+export async function addEndpoint(input: Omit<Endpoint, "id" | "merchantId" | "dodoMeterId" | "requestCount" | "revenueUsd" | "createdAt" | "updatedAt">) {
+  const store = await getStore();
+  return await prisma.endpoint.create({
+    data: {
+      merchantId: store.merchant.id,
+      name: input.name,
+      slug: input.slug,
+      method: input.method,
+      upstreamUrl: input.upstreamUrl,
+      priceUsd: input.priceUsd,
+      description: input.description,
+      mimeType: input.mimeType,
+      active: input.active,
+      dodoMeterId: "mtr_demo_api_call"
+    }
+  });
+}
+
+export async function recordGatewayRequest(input: Omit<GatewayRequest, "id" | "createdAt">) {
+  const gw = await prisma.gatewayRequest.create({
+    data: {
+      endpointId: input.endpointId,
+      buyerId: input.buyerId,
+      method: input.method,
+      path: input.path,
+      statusCode: input.statusCode,
+      rawStatus: input.rawStatus,
+      providerId: input.providerId,
+      idempotencyKey: input.idempotencyKey,
+      latencyMs: input.latencyMs,
+      amountUsd: input.amountUsd,
+      txSignature: input.txSignature,
+      dodoPaymentId: input.dodoPaymentId,
+      errorCode: input.errorCode,
+      requestBody: input.requestBody ? JSON.stringify(input.requestBody) : undefined,
+      responseBody: input.responseBody ? JSON.stringify(input.responseBody) : undefined
+    }
+  });
+
+  if (input.statusCode === 200) {
+    await prisma.endpoint.update({
+      where: { id: input.endpointId },
+      data: {
+        requestCount: { increment: 1 },
+        revenueUsd: { increment: input.amountUsd }
+      }
+    });
   }
 
-  const timestamp = nowIso();
-  const endpoint: Endpoint = {
-    ...input,
-    id: makeId("end"),
-    merchantId: store.merchant.id,
-    dodoMeterId: "mtr_demo_api_call",
-    requestCount: 0,
-    revenueUsd: 0,
-    createdAt: timestamp,
-    updatedAt: timestamp
-  };
-
-  store.endpoints.unshift(endpoint);
-  return endpoint;
+  return { ...gw, amountUsd: Number(gw.amountUsd), createdAt: gw.createdAt.toISOString() };
 }
 
-export function recordGatewayRequest(input: Omit<GatewayRequest, "id" | "createdAt">) {
-  const request: GatewayRequest = {
-    ...input,
-    id: makeId("gw"),
-    createdAt: nowIso()
-  };
-  const store = getStore();
-  store.gatewayRequests.unshift(request);
-
-  const endpoint = store.endpoints.find((item) => item.id === input.endpointId);
-  if (endpoint && input.statusCode === 200) {
-    endpoint.requestCount += 1;
-    endpoint.revenueUsd = Number((endpoint.revenueUsd + input.amountUsd).toFixed(6));
-    endpoint.updatedAt = nowIso();
-  }
-
-  return request;
+export async function recordX402Payment(input: Omit<X402Payment, "id" | "createdAt">) {
+  const x = await prisma.x402Payment.create({
+    data: {
+      endpointId: input.endpointId,
+      buyerId: input.buyerId,
+      gatewayRequestId: input.gatewayRequestId,
+      providerId: input.providerId,
+      idempotencyKey: input.idempotencyKey,
+      scheme: input.scheme,
+      network: input.network,
+      amountUsd: input.amountUsd,
+      payTo: input.payTo,
+      txSignature: input.txSignature,
+      settlementStatus: input.settlementStatus,
+      rawStatus: input.rawStatus,
+      rawPayload: input.rawPayload ? JSON.stringify(input.rawPayload) : undefined
+    }
+  });
+  return { ...x, amountUsd: Number(x.amountUsd), createdAt: x.createdAt.toISOString() };
 }
 
-export function recordX402Payment(input: Omit<X402Payment, "id" | "createdAt">) {
-  const payment: X402Payment = {
-    ...input,
-    id: makeId("x402"),
-    createdAt: nowIso()
-  };
-  getStore().x402Payments.unshift(payment);
-  return payment;
+export async function recordCheckout(input: Omit<DodoCheckout, "id" | "createdAt" | "updatedAt">) {
+  const c = await prisma.dodoCheckout.create({
+    data: {
+      merchantId: input.merchantId,
+      buyerId: input.buyerId,
+      providerId: input.providerId,
+      idempotencyKey: input.idempotencyKey,
+      checkoutUrl: input.checkoutUrl,
+      productId: input.productId,
+      amountUsd: input.amountUsd,
+      rawStatus: input.rawStatus,
+      dodoPaymentId: input.dodoPaymentId,
+      rawPayload: input.rawPayload ? JSON.stringify(input.rawPayload) : undefined
+    }
+  });
+  return { ...c, amountUsd: Number(c.amountUsd), createdAt: c.createdAt.toISOString() };
 }
 
-export function recordCheckout(input: Omit<DodoCheckout, "id" | "createdAt" | "updatedAt">) {
-  const timestamp = nowIso();
-  const checkout: DodoCheckout = {
-    ...input,
-    id: makeId("chk"),
-    createdAt: timestamp,
-    updatedAt: timestamp
-  };
-  getStore().dodoCheckouts.unshift(checkout);
-  return checkout;
+export async function recordWebhook(input: Omit<DodoWebhookEvent, "id" | "createdAt">) {
+  const w = await prisma.dodoWebhookEvent.upsert({
+    where: { providerId: input.providerId },
+    update: {},
+    create: {
+      merchantId: input.merchantId,
+      providerId: input.providerId,
+      idempotencyKey: input.idempotencyKey,
+      eventType: input.eventType,
+      rawStatus: input.rawStatus,
+      parsedAmount: input.parsedAmount,
+      txSignature: input.txSignature,
+      dodoPaymentId: input.dodoPaymentId,
+      rawPayload: input.rawPayload ? JSON.stringify(input.rawPayload) : "{}"
+    }
+  });
+  return { ...w, parsedAmount: w.parsedAmount ? Number(w.parsedAmount) : undefined, createdAt: w.createdAt.toISOString() };
 }
 
-export function recordWebhook(input: Omit<DodoWebhookEvent, "id" | "createdAt">) {
-  const store = getStore();
-  const existing = store.dodoWebhookEvents.find((event) => event.providerId === input.providerId);
-  if (existing) {
-    return existing;
-  }
-
-  const webhook: DodoWebhookEvent = {
-    ...input,
-    id: makeId("wh"),
-    createdAt: nowIso()
-  };
-  store.dodoWebhookEvents.unshift(webhook);
-  return webhook;
-}
-
-export function adjustCredits(input: {
+export async function adjustCredits(input: {
   buyerId: string;
   amount: number;
   eventType: string;
@@ -349,55 +221,62 @@ export function adjustCredits(input: {
   txSignature?: string;
   rawPayload?: unknown;
 }) {
-  const store = getStore();
-  if (store.idempotencyKeys.has(input.idempotencyKey)) {
-    return store.creditLedgerEntries.find((entry) => entry.idempotencyKey === input.idempotencyKey);
+  const existing = await prisma.creditLedgerEntry.findFirst({
+    where: { idempotencyKey: input.idempotencyKey }
+  });
+  if (existing) {
+    return { ...existing, amount: Number(existing.amount), balanceBefore: Number(existing.balanceBefore), balanceAfter: Number(existing.balanceAfter), createdAt: existing.createdAt.toISOString() };
   }
 
-  const buyer = store.buyers.find((item) => item.id === input.buyerId);
-  if (!buyer) {
-    throw new Error("Buyer not found");
-  }
-
-  const balanceBefore = buyer.creditBalance;
+  const buyer = await prisma.buyer.findUniqueOrThrow({ where: { id: input.buyerId } });
+  const balanceBefore = Number(buyer.creditBalance);
   const balanceAfter = Number((balanceBefore + input.amount).toFixed(6));
-  buyer.creditBalance = balanceAfter;
-  buyer.updatedAt = nowIso();
 
-  const entry: CreditLedgerEntry = {
-    id: makeId("cle"),
-    buyerId: input.buyerId,
-    providerId: input.providerId,
-    idempotencyKey: input.idempotencyKey,
-    eventType: input.eventType,
-    rawStatus: input.rawStatus,
-    amount: input.amount,
-    balanceBefore,
-    balanceAfter,
-    dodoPaymentId: input.dodoPaymentId,
-    txSignature: input.txSignature,
-    reason: input.reason,
-    rawPayload: input.rawPayload,
-    createdAt: nowIso()
-  };
+  const [entry] = await prisma.$transaction([
+    prisma.creditLedgerEntry.create({
+      data: {
+        buyerId: input.buyerId,
+        providerId: input.providerId,
+        idempotencyKey: input.idempotencyKey,
+        eventType: input.eventType,
+        rawStatus: input.rawStatus,
+        amount: input.amount,
+        balanceBefore,
+        balanceAfter,
+        dodoPaymentId: input.dodoPaymentId,
+        txSignature: input.txSignature,
+        reason: input.reason,
+        rawPayload: input.rawPayload ? JSON.stringify(input.rawPayload) : undefined
+      }
+    }),
+    prisma.buyer.update({
+      where: { id: input.buyerId },
+      data: { creditBalance: balanceAfter }
+    })
+  ]);
 
-  store.creditLedgerEntries.unshift(entry);
-  store.idempotencyKeys.add(input.idempotencyKey);
-  return entry;
+  return { ...entry, amount: Number(entry.amount), balanceBefore: Number(entry.balanceBefore), balanceAfter: Number(entry.balanceAfter), createdAt: entry.createdAt.toISOString() };
 }
 
-export function recordDemoRun(input: Omit<DemoRun, "id" | "createdAt">) {
-  const demoRun: DemoRun = {
-    ...input,
-    id: makeId("demo"),
-    createdAt: nowIso()
-  };
-  getStore().demoRuns.unshift(demoRun);
-  return demoRun;
+export async function recordDemoRun(input: Omit<DemoRun, "id" | "createdAt">) {
+  const d = await prisma.demoRun.create({
+    data: {
+      merchantId: input.merchantId,
+      providerId: input.providerId,
+      idempotencyKey: input.idempotencyKey,
+      rawStatus: input.rawStatus,
+      endpointSlug: input.endpointSlug,
+      amountUsd: input.amountUsd,
+      txSignature: input.txSignature,
+      dodoPaymentId: input.dodoPaymentId,
+      steps: input.steps ? JSON.stringify(input.steps) : "[]"
+    }
+  });
+  return { ...d, amountUsd: Number(d.amountUsd), createdAt: d.createdAt.toISOString(), steps: d.steps as any };
 }
 
-export function getLedger(): LedgerItem[] {
-  const store = getStore();
+export async function getLedger(): Promise<LedgerItem[]> {
+  const store = await getStore();
   const dodo: LedgerItem[] = store.dodoCheckouts.map((checkout) => ({
     id: checkout.id,
     kind: "dodo",
@@ -451,95 +330,81 @@ export function getLedger(): LedgerItem[] {
     createdAt: payment.createdAt
   }));
 
-  const gateway: LedgerItem[] = store.gatewayRequests.map((request) => ({
-    id: request.id,
+  const gateways: LedgerItem[] = store.gatewayRequests.map((req) => ({
+    id: req.id,
     kind: "gateway",
-    title: `Gateway ${request.statusCode}`,
-    status: request.rawStatus,
-    amountUsd: request.amountUsd,
-    txSignature: request.txSignature,
-    dodoPaymentId: request.dodoPaymentId,
-    providerId: request.providerId,
-    metadata: request.responseBody,
-    createdAt: request.createdAt
+    title: `${req.method} ${req.path}`,
+    status: `${req.statusCode} ${req.rawStatus}`,
+    amountUsd: req.amountUsd,
+    txSignature: req.txSignature,
+    providerId: req.providerId,
+    metadata: { latencyMs: req.latencyMs, errorCode: req.errorCode },
+    createdAt: req.createdAt
   }));
 
-  const demos: LedgerItem[] = store.demoRuns.map((demo) => ({
-    id: demo.id,
-    kind: "demo",
-    title: `Demo run: ${demo.endpointSlug}`,
-    status: demo.rawStatus,
-    amountUsd: demo.amountUsd,
-    txSignature: demo.txSignature,
-    dodoPaymentId: demo.dodoPaymentId,
-    providerId: demo.providerId,
-    metadata: demo.steps,
-    createdAt: demo.createdAt
-  }));
-
-  return [...dodo, ...webhooks, ...credits, ...x402, ...gateway, ...demos].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+  const items = [...dodo, ...webhooks, ...credits, ...x402, ...gateways];
+  items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return items;
 }
 
-export function resolveMockUpstream(endpoint: Endpoint) {
-  if (endpoint.slug === "weather-alpha") {
-    return {
-      model: "weather-alpha",
-      location: "Bengaluru",
-      signal: "clear-route-window",
-      confidence: 0.94,
-      recommendation: "Dispatch within 18 minutes to avoid monsoon drift.",
-      generated_at: nowIso()
-    };
-  }
-
-  if (endpoint.slug === "risk-score") {
-    return {
-      model: "risk-score",
-      score: 21,
-      band: "low",
-      rationale: "Counterparty wallet, amount, and endpoint history are within policy.",
-      generated_at: nowIso()
-    };
-  }
+export async function getMetrics() {
+  const store = await getStore();
+  const successfulGw = store.gatewayRequests.filter((r) => r.statusCode === 200);
+  const successfulPx = store.x402Payments.filter((p) => p.settlementStatus === "verified_devnet" || p.settlementStatus === "settled");
 
   return {
-    endpoint: endpoint.slug,
-    message: "Demo endpoint fulfilled through AgentMeter",
-    generated_at: nowIso()
+    totalRequests: successfulGw.length,
+    totalRevenue: successfulGw.reduce((sum, req) => sum + req.amountUsd, 0),
+    activeAgents: new Set(successfulGw.map((req) => req.buyerId).filter(Boolean)).size,
+    successRate: store.gatewayRequests.length > 0 ? (successfulGw.length / store.gatewayRequests.length) * 100 : 100
   };
 }
 
-export function createUsageEvent(endpoint: Endpoint, buyer: Buyer, txSignature?: string) {
+export function createUsageEvent(endpoint: Endpoint, buyer: Buyer, txSignature: string) {
   return {
-    event_id: `api_call_${endpoint.slug}_${Date.now()}`,
+    event_id: `api_call_${Date.now()}_${txSignature.substring(0, 8)}`,
     customer_id: buyer.dodoCustomerId,
-    event_name: "api.call" as const,
-    timestamp: nowIso(),
+    event_name: "api.call",
+    timestamp: new Date().toISOString(),
     metadata: {
       endpoint: endpoint.slug,
       method: endpoint.method,
       price_usd: endpoint.priceUsd,
-      x402_network: X402_NETWORK,
+      x402_network: "solana:devnet",
       tx_signature: txSignature
     }
   };
 }
 
-export function getMetrics() {
-  const store = getStore();
-  const totalRevenue = store.endpoints.reduce((sum, endpoint) => sum + endpoint.revenueUsd, 0);
-  const totalRequests = store.endpoints.reduce((sum, endpoint) => sum + endpoint.requestCount, 0);
-  const buyer = store.buyers[0];
-  const lastPayment = store.x402Payments[0];
+export function resolveMockUpstream(endpoint: Endpoint) {
+  if (endpoint.slug === "weather-alpha") {
+    return {
+      location: { lat: 37.7749, lon: -122.4194, name: "San Francisco CA" },
+      forecast: {
+        timestamp: new Date().toISOString(),
+        conditions: "Clear",
+        temp_c: 18.2,
+        wind_kph: 14.5,
+        visibility_km: 16.0,
+        logistics_rating: "OPTIMAL"
+      },
+      agent_insight: "No delays expected for autonomous deliveries in this sector."
+    };
+  }
 
-  return {
-    totalRevenue,
-    totalRequests,
-    activeEndpoints: store.endpoints.filter((endpoint) => endpoint.active).length,
-    creditBalance: buyer?.creditBalance ?? 0,
-    lastTx: lastPayment?.txSignature,
-    appUrl: APP_URL
-  };
+  if (endpoint.slug === "risk-score") {
+    return {
+      wallet: "Fh3DemoAgent111111111111111111111111111111111",
+      score: 98,
+      factors: {
+        age_days: 124,
+        tx_volume_usd: 1450.25,
+        spam_likelihood: 0.02
+      },
+      recommendation: "APPROVE",
+      agent_insight: "High-trust wallet. Safe for auto-settlement."
+    };
+  }
+
+  return { status: "ok", endpoint: endpoint.slug, timestamp: new Date().toISOString() };
 }

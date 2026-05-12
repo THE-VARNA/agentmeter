@@ -5,7 +5,7 @@ import { usageEventSchema } from "@/lib/schemas";
 
 describe("demo flow primitives", () => {
   it("creates a Dodo-compatible usage event", () => {
-    const store = getStore();
+    const store = await getStore();
     const event = createUsageEvent(store.endpoints[0], store.buyers[0], "demo_sig_test");
     const parsed = usageEventSchema.parse(event);
 
@@ -14,7 +14,7 @@ describe("demo flow primitives", () => {
   });
 
   it("resolves seeded mock upstreams", () => {
-    const store = getStore();
+    const store = await getStore();
     const response = resolveMockUpstream(store.endpoints[0]) as { model: string };
 
     expect(response.model).toBe("weather-alpha");

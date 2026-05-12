@@ -15,7 +15,7 @@ export async function POST(request: Request) {
 
   try {
     const parsed = parseDodoWebhook(rawPayload, headers.id);
-    const store = getStore();
+    const store = await getStore();
 
     // Record the raw webhook event (idempotent)
     const event = recordWebhook({

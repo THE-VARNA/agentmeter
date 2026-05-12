@@ -22,7 +22,7 @@ import {
 export async function POST(request: Request) {
   try {
     const payload = demoRunSchema.parse(await request.json().catch(() => ({})));
-    const store = getStore();
+    const store = await getStore();
     const endpoint = findEndpoint(payload.endpointSlug);
     const buyer = store.buyers[0];
 

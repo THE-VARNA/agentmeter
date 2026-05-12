@@ -18,7 +18,7 @@ export default async function EndpointDetailPage({ params }: { params: Promise<{
     notFound();
   }
 
-  const state = getSerializableState();
+  const state = await getSerializableState();
   const requests = state.gatewayRequests.filter((request) => request.endpointId === endpoint.id);
   const payments = state.x402Payments.filter((payment) => payment.endpointId === endpoint.id);
   const requirement = buildX402Requirement(endpoint, state.merchant);

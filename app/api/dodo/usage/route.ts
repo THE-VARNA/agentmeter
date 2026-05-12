@@ -7,7 +7,7 @@ import { usageEventSchema } from "@/lib/schemas";
 export async function POST(request: Request) {
   try {
     const event = usageEventSchema.parse(await request.json());
-    const store = getStore();
+    const store = await getStore();
     const buyer = store.buyers.find((item) => item.dodoCustomerId === event.customer_id);
     const result = await ingestDodoUsageEvent(event);
 

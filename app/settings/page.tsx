@@ -7,8 +7,8 @@ import { getSerializableState } from "@/lib/demo-data";
 
 export const dynamic = "force-dynamic";
 
-export default function SettingsPage() {
-  const state = getSerializableState();
+export default async function SettingsPage() {
+  const state = await getSerializableState();
   const rows = [
     {
       label: "Dodo API key",

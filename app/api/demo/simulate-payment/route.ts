@@ -6,7 +6,7 @@ import { adjustCredits, getStore } from "@/lib/demo-data";
 export async function POST(request: Request) {
   try {
     const { amountUsd } = await request.json();
-    const store = getStore();
+    const store = await getStore();
     const buyer = store.buyers[0];
 
     if (!buyer) return NextResponse.json({ error: "buyer_not_found" }, { status: 404 });

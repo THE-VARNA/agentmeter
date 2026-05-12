@@ -3,6 +3,6 @@ import { getLedger } from "@/lib/demo-data";
 
 export const dynamic = "force-dynamic";
 
-export default function LedgerPage() {
+export default async function LedgerPage() {
   return <LedgerClient initialLedger={getLedger()} />;
 }

@@ -27,7 +27,7 @@ async function handleGatewayRequest(
   requestBody?: unknown
 ) {
   const startedAt = Date.now();
-  const store = getStore();
+  const store = await getStore();
   const endpoint = findEndpoint(slug);
   const buyer = store.buyers[0];
 

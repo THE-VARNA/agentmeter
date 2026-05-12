@@ -6,8 +6,8 @@ import { getSerializableState } from "@/lib/demo-data";
 
 export const dynamic = "force-dynamic";
 
-export default function OnboardingPage() {
-  const state = getSerializableState();
+export default async function OnboardingPage() {
+  const state = await getSerializableState();
   const hasDodoKey = Boolean(process.env.DODO_PAYMENTS_API_KEY);
   const hasWebhook = Boolean(process.env.DODO_PAYMENTS_WEBHOOK_KEY);
 

@@ -8,7 +8,7 @@ import { creditPackSchema } from "@/lib/schemas";
 export async function POST(request: Request) {
   try {
     const input = creditPackSchema.parse(await request.json());
-    const store = getStore();
+    const store = await getStore();
     const buyer = store.buyers.find((item) => item.id === input.buyerId);
     const pack = CREDIT_PACKS.find((item) => item.amountUsd === input.amountUsd);
 
