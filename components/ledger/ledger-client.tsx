@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Loader2, RefreshCw, Search } from "lucide-react";
+import { ExternalLink, Loader2, RefreshCw, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import type { LedgerItem } from "@/lib/types";
@@ -75,11 +75,11 @@ export function LedgerClient({ initialLedger }: { initialLedger: LedgerItem[] })
 
         {/* Table header */}
         <div style={{
-          display: "grid", gridTemplateColumns: "110px 1fr 90px 170px",
+          display: "grid", gridTemplateColumns: "110px 1fr 90px 170px 36px",
           padding: "10px 14px", background: "rgba(255,255,255,0.04)", borderRadius: "10px 10px 0 0",
           border: "1px solid rgba(255,255,255,0.07)", borderBottom: "none"
         }}>
-          {["Type", "Event", "Amount", "Timestamp"].map(h => (
+          {["Type", "Event", "Amount", "Timestamp", ""].map(h => (
             <span key={h} style={{ fontSize: 11, fontWeight: 700, color: "#8899aa", letterSpacing: "0.06em", textTransform: "uppercase" }}>{h}</span>
           ))}
         </div>
@@ -100,7 +100,7 @@ export function LedgerClient({ initialLedger }: { initialLedger: LedgerItem[] })
                     exit={{ opacity: 0, height: 0 }}
                     transition={{ delay: i * 0.02 }}
                     style={{
-                      display: "grid", gridTemplateColumns: "110px 1fr 90px 170px",
+                      display: "grid", gridTemplateColumns: "110px 1fr 90px 170px 36px",
                       alignItems: "center", gap: 12, padding: "13px 14px",
                       borderBottom: i < filtered.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none",
                       transition: "background 150ms"
@@ -135,6 +135,23 @@ export function LedgerClient({ initialLedger }: { initialLedger: LedgerItem[] })
                     <span style={{ fontSize: 11, color: "#8899aa" }}>
                       {new Date(item.createdAt).toLocaleString()}
                     </span>
+
+                    {/* Solana Explorer link */}
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      {item.txSignature && (
+                        <a
+                          href={`https://explorer.solana.com/tx/${item.txSignature}?cluster=devnet`}
+                          target="_blank"
+                          rel="noreferrer"
+                          title="View on Solana Explorer"
+                          style={{ color: "#818cf8", display: "flex", alignItems: "center", opacity: 0.7, transition: "opacity 150ms" }}
+                          onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
+                          onMouseLeave={e => (e.currentTarget.style.opacity = "0.7")}
+                        >
+                          <ExternalLink size={12} />
+                        </a>
+                      )}
+                    </div>
                   </motion.div>
                 );
               })}
