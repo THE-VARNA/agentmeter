@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { CREDIT_PACKS } from "@/lib/constants";
 import { getStore, recordCheckout } from "@/lib/demo-data";
-import { createDodoCreditPackCheckout } from "@/lib/dodo";
+import { createDodoCreditPackCheckout, createOrGetDodoCustomer } from "@/lib/dodo";
 import { creditPackSchema } from "@/lib/schemas";
 
 export async function POST(request: Request) {
@@ -16,7 +16,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "buyer_or_pack_not_found" }, { status: 404 });
     }
 
-    const checkout = await createDodoCreditPackCheckout(input);
+    // ── Step 1: Ensure buyer has a real Dodo Customer ID ──────────────────────
+    const { customerId, isNew } = await createOrGetDodoCustomer({
+      email: buyer.email,
+      name: buyer.name,
+      existingCustomerId: buyer.dodoCustomerId
+    });
+
+    // Persist the Dodo customer ID back to the buyer record
+    if (isNew || !buyer.dodoCustomerId) {
+      buyer.dodoCustomerId = customerId;
+      buyer.updatedAt = new Date().toISOString();
+    }
+
+    // ── Step 2: Create checkout session with the real customer_id ─────────────
+    const checkout = await createDodoCreditPackCheckout({
+      ...input,
+      dodoCustomerId: customerId
+    });
+
     const record = recordCheckout({
       merchantId: store.merchant.id,
       buyerId: buyer.id,
@@ -29,7 +47,7 @@ export async function POST(request: Request) {
       rawPayload: checkout.rawPayload
     });
 
-    return NextResponse.json({ checkout: record, pack });
+    return NextResponse.json({ checkout: record, pack, dodoCustomerId: customerId });
   } catch (error) {
     return NextResponse.json(
       {

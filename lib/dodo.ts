@@ -19,7 +19,9 @@ function productIdForAmount(amountUsd: number) {
   return process.env[envKey] ?? `pdt_demo_credit_pack_${amountUsd}`;
 }
 
-export async function createDodoCreditPackCheckout(input: CreditPackInput) {
+export async function createDodoCreditPackCheckout(
+  input: CreditPackInput & { dodoCustomerId?: string }
+) {
   const pack = CREDIT_PACKS.find((item) => item.amountUsd === input.amountUsd);
   const productId = productIdForAmount(input.amountUsd);
   const idempotencyKey = `dodo_checkout_${input.buyerId}_${input.amountUsd}_${Date.now()}`;
@@ -31,7 +33,7 @@ export async function createDodoCreditPackCheckout(input: CreditPackInput) {
       environment: dodoEnv
     });
 
-    const session = await client.checkoutSessions.create({
+    const sessionParams: Record<string, unknown> = {
       product_cart: [{ product_id: productId, quantity: 1 }],
       allowed_payment_method_types: [DODO_STABLECOIN_METHOD, ...DODO_PAYMENT_FALLBACKS],
       return_url: `${APP_URL}/credits?checkout=success`,
@@ -41,7 +43,14 @@ export async function createDodoCreditPackCheckout(input: CreditPackInput) {
         buyer_id: input.buyerId,
         credits: String(pack?.credits ?? input.amountUsd * 1000)
       }
-    } as never);
+    };
+
+    // Attach real Dodo customer if we have one
+    if (input.dodoCustomerId && !input.dodoCustomerId.startsWith("demo_cus")) {
+      sessionParams.customer = { customer_id: input.dodoCustomerId };
+    }
+
+    const session = await client.checkoutSessions.create(sessionParams as never);
 
     return {
       providerId: session.session_id,
@@ -73,26 +82,69 @@ export async function createDodoCreditPackCheckout(input: CreditPackInput) {
   };
 }
 
-export async function ingestDodoUsageEvent(event: UsageEventInput) {
-  if (hasDodoCredentials() && !process.env.AGENTMETER_FORCE_MOCK_DODO) {
-    const response = await fetch(`${dodoApiBase()}/events/ingest`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.DODO_PAYMENTS_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ events: [event] })
+// ── Customer Management ───────────────────────────────────────────────────────
+
+export async function createOrGetDodoCustomer(input: {
+  email: string;
+  name: string;
+  existingCustomerId?: string;
+}) {
+  // If already has a Dodo customer ID, return it
+  if (input.existingCustomerId && !input.existingCustomerId.startsWith("demo_cus")) {
+    return { customerId: input.existingCustomerId, isNew: false };
+  }
+
+  if (hasDodoCredentials()) {
+    const { default: DodoPayments } = await import("dodopayments");
+    const client = new DodoPayments({
+      bearerToken: process.env.DODO_PAYMENTS_API_KEY,
+      environment: dodoEnv
     });
 
-    if (!response.ok) {
-      const body = await response.text();
-      throw new Error(`Dodo usage ingestion failed: ${response.status} ${body}`);
-    }
+    const customer = await client.customers.create({
+      email: input.email,
+      name: input.name
+    });
+
+    return {
+      customerId: customer.customer_id,
+      isNew: true,
+      rawPayload: customer
+    };
+  }
+
+  // Demo fallback
+  return {
+    customerId: `demo_cus_${Date.now()}`,
+    isNew: false
+  };
+}
+
+// ── Usage Events ──────────────────────────────────────────────────────────────
+
+export async function ingestDodoUsageEvent(event: UsageEventInput) {
+  if (hasDodoCredentials() && !process.env.AGENTMETER_FORCE_MOCK_DODO) {
+    const { default: DodoPayments } = await import("dodopayments");
+    const client = new DodoPayments({
+      bearerToken: process.env.DODO_PAYMENTS_API_KEY,
+      environment: dodoEnv
+    });
+
+    // Use SDK method instead of raw fetch
+    const response = await client.usageEvents.ingest({
+      events: [{
+        customer_id: event.customer_id,
+        event_id: event.event_id,
+        event_name: event.event_name,
+        timestamp: event.timestamp ?? undefined,
+        metadata: event.metadata as Record<string, string | number | boolean> | null | undefined
+      }]
+    });
 
     return {
       providerId: event.event_id,
       rawStatus: "ingested",
-      rawPayload: await response.json().catch(() => ({ ok: true }))
+      rawPayload: { ingested_count: response.ingested_count }
     };
   }
 

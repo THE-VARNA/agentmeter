@@ -17,10 +17,16 @@ import {
   paymentResponseHeader,
   verifyDemoPaymentHeader
 } from "@/lib/x402";
+import type { Method } from "@/lib/types";
 
-export async function GET(request: Request, context: { params: Promise<{ slug: string }> }) {
+// ── Shared handler (supports GET and POST) ────────────────────────────────────
+async function handleGatewayRequest(
+  request: Request,
+  slug: string,
+  method: Method,
+  requestBody?: unknown
+) {
   const startedAt = Date.now();
-  const { slug } = await context.params;
   const store = getStore();
   const endpoint = findEndpoint(slug);
   const buyer = store.buyers[0];
@@ -31,6 +37,14 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
 
   if (!endpoint.active) {
     return NextResponse.json({ error: "endpoint_inactive" }, { status: 423 });
+  }
+
+  // Reject method mismatch (endpoint config defines allowed method)
+  if (endpoint.method !== method) {
+    return NextResponse.json(
+      { error: "method_not_allowed", expected: endpoint.method },
+      { status: 405 }
+    );
   }
 
   const remote = request.headers.get("x-forwarded-for") ?? "local";
@@ -59,7 +73,7 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
     recordGatewayRequest({
       endpointId: endpoint.id,
       buyerId: buyer?.id,
-      method: endpoint.method,
+      method,
       path: `/gateway/${endpoint.slug}`,
       statusCode: 402,
       rawStatus: verification.error,
@@ -67,6 +81,7 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
       latencyMs: Date.now() - startedAt,
       amountUsd: endpoint.priceUsd,
       errorCode: verification.error,
+      requestBody,
       responseBody: verification
     });
 
@@ -80,13 +95,18 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
   }
 
   const responseBody = resolveMockUpstream(endpoint);
-  const usageEvent = usageEventSchema.parse(createUsageEvent(endpoint, buyer, verification.signature));
+  const usageEvent = usageEventSchema.parse(
+    createUsageEvent(endpoint, buyer, verification.signature)
+  );
+
+  // Use Dodo SDK directly (client.usageEvents.ingest)
   const dodoUsage = await ingestDodoUsageEvent(usageEvent);
+
   const idempotencyKey = `gateway_${endpoint.slug}_${verification.signature}`;
   const gatewayRequest = recordGatewayRequest({
     endpointId: endpoint.id,
     buyerId: buyer?.id,
-    method: endpoint.method,
+    method,
     path: `/gateway/${endpoint.slug}`,
     statusCode: 200,
     rawStatus: "fulfilled",
@@ -95,7 +115,8 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
     latencyMs: Date.now() - startedAt,
     amountUsd: verification.amountUsd,
     txSignature: verification.signature,
-    responseBody: responseBody
+    requestBody,
+    responseBody
   });
 
   recordX402Payment({
@@ -113,9 +134,13 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
     rawStatus: "settled",
     rawPayload: {
       payment: verification.rawPayload,
-      dodoUsage
+      dodoUsage,
+      requestBody
     }
   });
+
+  // Solana Explorer link for the tx (devnet)
+  const solanaExplorerUrl = `https://explorer.solana.com/tx/${verification.signature}?cluster=devnet`;
 
   return NextResponse.json(
     {
@@ -129,7 +154,8 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
       payment: {
         network: store.merchant.x402Network,
         tx_signature: verification.signature,
-        status: verification.settlementStatus
+        status: verification.settlementStatus,
+        explorer: solanaExplorerUrl
       }
     },
     {
@@ -143,4 +169,29 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
       }
     }
   );
+}
+
+// ── Route Handlers ────────────────────────────────────────────────────────────
+
+export async function GET(
+  request: Request,
+  context: { params: Promise<{ slug: string }> }
+) {
+  const { slug } = await context.params;
+  return handleGatewayRequest(request, slug, "GET");
+}
+
+export async function POST(
+  request: Request,
+  context: { params: Promise<{ slug: string }> }
+) {
+  const { slug } = await context.params;
+  let body: unknown;
+  try {
+    const text = await request.text();
+    body = text ? JSON.parse(text) : undefined;
+  } catch {
+    body = undefined;
+  }
+  return handleGatewayRequest(request, slug, "POST", body);
 }
