@@ -25,6 +25,7 @@
     "class-variance-authority": "latest",
     "clsx": "latest",
     "dodopayments": "latest",
+    "framer-motion": "^12.38.0",
     "hono": "latest",
     "lucide-react": "latest",
     "next": "latest",

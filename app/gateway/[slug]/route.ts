@@ -18,10 +18,11 @@ import {
   verifyDemoPaymentHeader
 } from "@/lib/x402";
 
-export async function GET(request: Request, context: { params: { slug: string } }) {
+export async function GET(request: Request, context: { params: Promise<{ slug: string }> }) {
   const startedAt = Date.now();
+  const { slug } = await context.params;
   const store = getStore();
-  const endpoint = findEndpoint(context.params.slug);
+  const endpoint = findEndpoint(slug);
   const buyer = store.buyers[0];
 
   if (!endpoint) {
