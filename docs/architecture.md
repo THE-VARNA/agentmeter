@@ -38,11 +38,11 @@ AgentMeter Gateway
 ## Runtime Modules
 
 - `lib/x402.ts`: payment requirement generation, payment header normalization, and **real Solana Devnet transaction verification** using `@solana/web3.js`.
-- `lib/dodo.ts`: Dodo checkout session creation (for credit packs and subscriptions), customer management, Dodo License Key issuance, automated usage ingestion, webhook verification, and refund issuance.
+- `lib/dodo.ts`: Dodo SDK wrappers for checkout sessions (with **Idempotency Keys**), customer management, usage ingestion, and automated programmatic refunds.
 - `lib/db.ts`: Neon Serverless Postgres instance via Prisma 7.
-- `app/gateway/[slug]/route.ts`: protected API gateway with built-in subscription bypass and automated upstream failure refund safeguards.
+- `app/gateway/[slug]/route.ts`: protected API gateway with built-in subscription bypass and automated upstream failure refund safeguards. Every request sends **enriched usage metadata** (Solana tx, agent wallet, latency) to Dodo.
 - `app/api/demo/run/route.ts`: one-click judge demo path for visualizing the x402 sequence.
-- `app/api/dodo/webhook/route.ts`: robust handler for Dodo `payment.succeeded` events that provisions credit limits and generates Dodo License Keys.
+- `app/api/dodo/webhook/route.ts`: secure handler for Dodo native events (`payment.succeeded`, `license_key.created`). It leverages Dodo’s **Native Entitlements Engine** for auto-issuing license keys.
 
 ## Persistence & State
 

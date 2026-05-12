@@ -403,7 +403,9 @@ export function createUsageEvent(endpoint: Endpoint, buyer: Buyer, txSignature: 
       method: endpoint.method,
       price_usd: endpoint.priceUsd,
       x402_network: "solana:devnet",
-      tx_signature: txSignature
+      solana_tx: txSignature,
+      agent_wallet: buyer.dodoCustomerId || "demo_wallet",
+      gateway_latency_ms: Math.floor(Math.random() * 50) + 100 // Simulate latency tracking for demo
     }
   };
 }

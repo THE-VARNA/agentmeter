@@ -34,15 +34,14 @@ Instead of monthly invoices, agents pay exactly for what they use, per-call, usi
 
 ## 🛠️ How We Deeply Utilize Dodo Payments
 
-AgentMeter is fundamentally powered by the Dodo Payments SDK to handle all complex financial logic, acting as the bridge between global fiat liquidity and Solana-native machine payments:
+AgentMeter is fundamentally powered by the Dodo Payments SDK to handle all complex financial logic. We don't just use simple checkouts; we implement a production-grade billing infrastructure:
 
-- **Checkout Sessions (`client.checkoutSessions.create`)**: We use the `DodoOverlay` to sell API "credit packs" and "monthly subscriptions" seamlessly inside our application. This allows humans to easily fund their AI agents using cards or crypto.
-- **Hybrid Billing & Subscriptions**: Users can buy monthly subscription tiers (e.g., Pro, Enterprise). Dodo handles the recurring billing while AgentMeter meters the usage.
-- **License Keys (`client.licenseKeys.create`)**: When a user purchases a subscription, a secure Dodo License Key is automatically issued via webhooks and stored in our database. This key allows them to bypass per-call charges.
-- **Usage Events (`client.usageEvents.ingest`)**: For every successful API call (whether paid per-use or via a subscription License Key), AgentMeter ingests a Dodo Usage Event to securely track volume and deduct from included limits.
-- **Automated Refunds (`client.refunds.create`)**: If our gateway accepts a payment but the upstream API provider fails, we use the Dodo SDK to automatically issue a full programmatic refund, ensuring trust in the autonomous machine economy.
-- **Standard Webhooks**: A secure webhook handler listens for `payment.succeeded` events to automatically map the `customer_id` via our Neon Postgres DB, top-up agent credits, and issue License Keys.
-- **Revenue Analytics (`client.payments.list`)**: Our merchant dashboard pulls real-time analytics directly from the Dodo API, ensuring a unified source of truth.
+- **Checkout Sessions (`client.checkoutSessions.create`)**: We use the `DodoOverlay` for in-page credit-pack and subscription checkouts. Every session is secured with **Idempotency Keys** to prevent duplicate charges in distributed machine environments.
+- **Native Entitlements Engine**: We utilize Dodo's native backend for **Automatic License Key Issuance**. Instead of manual key-handling, we rely on Dodo's automated issuance logic, providing a more secure and standardized entitlement flow for SaaS.
+- **Usage Metering (`client.usageEvents.ingest`)**: Every API call (paid or subscribed) is ingested with **Enriched Metadata** including the Solana Transaction Signature (`solana_tx`), Agent Wallet (`agent_wallet`), and simulated `gateway_latency_ms`. This allows merchants to cross-reference blockchain signatures directly within the Dodo dashboard.
+- **Automated Programmatic Refunds (`client.refunds.create`)**: If our gateway accepts an x402 payment but the upstream API provider fails, the gateway automatically issues a full Dodo refund. This solves the "Trust Gap" in autonomous agent billing.
+- **Native Webhook Integration**: A secure, verified webhook handler listens for native Dodo events (`payment.succeeded`, `license_key.created`) to keep our Neon Postgres database perfectly synced with Dodo's financial ledger.
+- **Consolidated Revenue Analytics (`client.payments.list`)**: Our merchant dashboard pulls real-time analytics directly from the Dodo SDK, acting as a unified source of truth for fiat, card, and stablecoin revenue.
 
 ---
 

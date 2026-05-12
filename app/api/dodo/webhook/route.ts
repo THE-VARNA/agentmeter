@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { CREDIT_PACKS, SUBSCRIPTION_PLANS } from "@/lib/constants";
 import { adjustCredits, getStore, recordWebhook } from "@/lib/demo-data";
 import { prisma } from "@/lib/db";
-import { extractWebhookHeaders, parseDodoWebhook, verifyDodoWebhook, issueDodoLicenseKey } from "@/lib/dodo";
+import { extractWebhookHeaders, parseDodoWebhook, verifyDodoWebhook } from "@/lib/dodo";
 
 export async function POST(request: Request) {
   const rawPayload = await request.text();
@@ -113,23 +113,28 @@ export async function POST(request: Request) {
             }
           });
         }
-        
-        // If this was a subscription, issue a license key for their gateway access
-        if (sub && buyer.dodoCustomerId) {
-          const license = await issueDodoLicenseKey({
-            buyerId: buyer.id,
-            productId: sub.productId,
-            dodoCustomerId: buyer.dodoCustomerId
-          });
-          
+      }
+    } else if (parsed.eventType === "license_key.created") {
+      // ── Dodo Native Auto License Keys ──────────────────────────────────────
+      const rawData = parsed.payload as Record<string, unknown>;
+      const payloadData = (rawData.data ?? rawData.payload ?? {}) as Record<string, unknown>;
+      
+      const dodoKeyId = String(payloadData.id ?? "");
+      const keyString = String(payloadData.key ?? "");
+      const dodoCustomerId = String(payloadData.customer_id ?? "");
+      const productId = String(payloadData.product_id ?? "");
+      const status = String(payloadData.status ?? "active");
+
+      if (dodoKeyId && dodoCustomerId) {
+        const dbBuyer = await prisma.buyer.findFirst({ where: { dodoCustomerId } });
+        if (dbBuyer) {
           await prisma.licenseKey.create({
             data: {
-              buyerId: buyer.id,
-              dodoKeyId: license.dodoKeyId,
-              key: license.key,
-              productId: sub.productId,
-              status: license.status,
-              dodoPaymentId: parsed.dodoPaymentId || undefined
+              buyerId: dbBuyer.id,
+              dodoKeyId,
+              key: keyString,
+              productId,
+              status
             }
           });
         }

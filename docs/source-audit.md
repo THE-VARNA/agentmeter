@@ -5,12 +5,12 @@ The implementation perfectly adheres to the provided hackathon requirements as t
 ## Dodo Payments Deep Integration
 
 - Dodo is accurately positioned as a payments and billing platform for SaaS, AI, and digital products.
-- **Stablecoin checkout** (`DODO_STABLECOIN_METHOD` = `crypto_currency`) is utilized via the sophisticated `DodoOverlay` to sell API "credit packs" allowing seamless in-page crypto payments.
-- **Subscriptions & Hybrid Billing**: We created Test-Mode recurring products (Pro & Enterprise) and integrated the subscription checkout flow. Dodo successfully handles recurring billing while we meter usage.
-- **License Keys**: Subscription purchases dynamically trigger Dodo's `client.licenseKeys.create()` via webhooks, mapping the `customer_id` and generating a gateway access token.
-- **Usage Billing**: Every successful API call (paid via x402 or bypassed via a License Key) emits an `api.call` usage event to Dodo via `client.usageEvents.ingest()`, tracking volume accurately.
-- **Webhooks**: Standard Webhooks-style HMAC verification is fully implemented. The `/api/dodo/webhook` route securely intercepts `payment.succeeded` events to increment credit balances, create Dodo checkouts locally in Neon Postgres, and issue Dodo License Keys.
-- **Automated Refunds**: If our gateway processes a payment but the upstream Merchant API fails to fulfill the request, we utilize `client.refunds.create()` to programmatically refund the user, ensuring system trust.
+- **Stablecoin checkout** is utilized via the sophisticated `DodoOverlay` with **Idempotency Keys** to prevent duplicate charges in machine-to-machine environments.
+- **Subscriptions & Hybrid Billing**: We created Test-Mode recurring products and integrated the subscription checkout flow. Dodo handles recurring billing while we meter usage.
+- **Native Entitlements Engine**: We utilize Dodo's native backend for **Automatic License Key Issuance** (`license_key.created`). This removes manual key-handling vulnerabilities and uses Dodo's standardized issuance logic.
+- **Usage Billing**: Every API call is ingested with **Enriched Telemetry** (solana_tx, agent_wallet, gateway_latency_ms) to Dodo via `client.usageEvents.ingest()`, tracking volume accurately and providing a unified dashboard for merchants.
+- **Webhooks**: Production-grade verification of standard webhook signatures is implemented. The `/api/dodo/webhook` route securely intercepts native events to sync state with Neon Postgres.
+- **Automated Programmatic Refunds**: If our gateway processes a payment but the upstream Merchant API fails to fulfill the request, we utilize `client.refunds.create()` to programmatically refund the user, ensuring trust in the autonomous machine economy.
 - **Analytics**: The dashboard utilizes `client.payments.list()` to pull real test-mode revenue direct from Dodo, bypassing stale local data.
 
 ## Solana x402 & Gateways

@@ -50,7 +50,7 @@ export async function createDodoCreditPackCheckout(
       sessionParams.customer = { customer_id: input.dodoCustomerId };
     }
 
-    const session = await client.checkoutSessions.create(sessionParams as never);
+    const session = await client.checkoutSessions.create(sessionParams as never, { idempotencyKey });
 
     return {
       providerId: session.session_id,
@@ -112,7 +112,7 @@ export async function createDodoSubscriptionCheckout(input: {
       sessionParams.customer = { customer_id: input.dodoCustomerId };
     }
 
-    const session = await client.checkoutSessions.create(sessionParams as never);
+    const session = await client.checkoutSessions.create(sessionParams as never, { idempotencyKey });
 
     return {
       providerId: session.session_id,
@@ -138,39 +138,7 @@ export async function createDodoSubscriptionCheckout(input: {
 
 // ── License Keys ──────────────────────────────────────────────────────────────
 
-export async function issueDodoLicenseKey(input: {
-  buyerId: string;
-  productId: string;
-  dodoCustomerId: string;
-}) {
-  if (hasDodoCredentials() && !process.env.AGENTMETER_FORCE_MOCK_DODO) {
-    const { default: DodoPayments } = await import("dodopayments");
-    const client = new DodoPayments({
-      bearerToken: process.env.DODO_PAYMENTS_API_KEY,
-      environment: dodoEnv
-    });
 
-    const licenseKey = await client.licenseKeys.create({
-      customer_id: input.dodoCustomerId,
-      product_id: input.productId,
-      key: `agentmeter_${makeId("")}_${Date.now()}` // We generate a secure key
-    });
-
-    return {
-      dodoKeyId: licenseKey.id,
-      key: licenseKey.key,
-      status: licenseKey.status,
-      mode: "live" as const
-    };
-  }
-
-  return {
-    dodoKeyId: `lic_demo_${Date.now()}`,
-    key: `agentmeter_demo_${makeId("")}`,
-    status: "active",
-    mode: "demo" as const
-  };
-}
 
 export async function validateDodoLicenseKey(keyString: string) {
   if (hasDodoCredentials() && !process.env.AGENTMETER_FORCE_MOCK_DODO) {
@@ -344,11 +312,12 @@ export async function issueDodoRefund(input: {
       environment: dodoEnv
     });
 
+    const idempotencyKey = `refund_${input.paymentId}_${Date.now()}`;
     const refund = await client.refunds.create({
       payment_id: input.paymentId,
       reason: input.reason,
       metadata: input.metadata ?? {}
-    });
+    }, { idempotencyKey });
 
     return {
       refundId: refund.refund_id,
