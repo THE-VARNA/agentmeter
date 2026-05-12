@@ -1,46 +1,42 @@
-import * as React from "react";
-import { Slot } from "@radix-ui/react-slot";
-import { cva, type VariantProps } from "class-variance-authority";
+import type { ReactNode } from "react";
 
-import { cn } from "@/lib/utils";
-
-const buttonVariants = cva(
-  "focus-ring inline-flex min-h-10 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition disabled:pointer-events-none disabled:opacity-50",
-  {
-    variants: {
-      variant: {
-        primary:
-          "bg-cyanline text-slate-950 shadow-[0_12px_36px_rgba(69,217,255,0.28)] hover:bg-cyan-300",
-        secondary:
-          "glass-rail text-white hover:border-white/20 hover:bg-white/10",
-        ghost: "text-slate-300 hover:bg-white/8 hover:text-white",
-        danger: "bg-rose text-white hover:bg-rose/85"
-      },
-      size: {
-        sm: "min-h-10 px-3 text-xs",
-        md: "min-h-10 px-4",
-        lg: "min-h-11 px-5"
-      }
-    },
-    defaultVariants: {
-      variant: "primary",
-      size: "md"
-    }
-  }
-);
-
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
+interface ButtonProps {
+  children: ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+  type?: "button" | "submit";
+  variant?: "primary" | "secondary" | "ghost";
+  size?: "sm" | "md" | "lg";
+  className?: string;
+  style?: React.CSSProperties;
   asChild?: boolean;
 }
 
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button";
-    return <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />;
-  }
-);
-Button.displayName = "Button";
+export function Button({
+  children, onClick, disabled, type = "button",
+  variant = "primary", size = "md", className = "", style, asChild
+}: ButtonProps) {
+  const base: React.CSSProperties = {
+    display: "inline-flex", alignItems: "center", gap: 8,
+    borderRadius: 10, fontWeight: 600, cursor: disabled ? "not-allowed" : "pointer",
+    opacity: disabled ? 0.5 : 1, border: "none", transition: "all 200ms ease",
+    padding: size === "sm" ? "7px 14px" : size === "lg" ? "13px 28px" : "10px 20px",
+    fontSize: size === "sm" ? 12 : size === "lg" ? 15 : 14,
+    ...(variant === "primary"
+      ? { background: "linear-gradient(135deg, #22d3ee, #818cf8)", color: "#04080e", boxShadow: "0 4px 16px rgba(34,211,238,0.28)" }
+      : variant === "secondary"
+      ? { background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", color: "#eef2f7", backdropFilter: "blur(12px)" }
+      : { background: "transparent", color: "#8899aa", border: "1px solid rgba(255,255,255,0.08)" }),
+    ...style,
+  };
 
-export { Button, buttonVariants };
+  if (asChild) {
+    return <span className={className} style={base}>{children}</span>;
+  }
+
+  return (
+    <button type={type} onClick={onClick} disabled={disabled} className={className} style={base}>
+      {children}
+    </button>
+  );
+}

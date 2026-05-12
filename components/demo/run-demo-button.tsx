@@ -1,11 +1,9 @@
 "use client";
 
-import { ArrowRight, Loader2, Play, ShieldCheck } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Activity, ArrowRight, CheckCircle, Loader2, Play, Zap } from "lucide-react";
 import { useState } from "react";
 
-import { Button } from "@/components/ui/button";
-import { GlassCard } from "@/components/ui/glass-card";
-import { StatusPill } from "@/components/ui/status-pill";
 import type { DemoRun } from "@/lib/types";
 
 export function RunDemoButton({
@@ -20,71 +18,95 @@ export function RunDemoButton({
   const [error, setError] = useState<string | null>(null);
 
   async function runDemo() {
-    setLoading(true);
-    setError(null);
+    setLoading(true); setError(null);
     try {
-      const response = await fetch("/api/demo/run", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch("/api/demo/run", {
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ endpointSlug: "weather-alpha" })
       });
-      const body = await response.json();
-      if (!response.ok) {
-        throw new Error(body.detail ?? body.error ?? "Demo failed");
-      }
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.detail ?? body.error ?? "Demo failed");
       setLastRun(body.demoRun);
       onComplete?.(body.demoRun);
-    } catch (demoError) {
-      setError(demoError instanceof Error ? demoError.message : "Demo failed");
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { setError(e instanceof Error ? e.message : "Demo failed"); }
+    finally { setLoading(false); }
   }
 
   if (compact) {
     return (
-      <Button type="button" onClick={runDemo} disabled={loading}>
-        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-        Run Agent Payment Demo
-      </Button>
+      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+        onClick={runDemo} disabled={loading}
+        style={{
+          display: "flex", alignItems: "center", gap: 8, padding: "10px 20px",
+          borderRadius: 10, fontSize: 14, fontWeight: 700, border: "none", cursor: loading ? "not-allowed" : "pointer",
+          background: "linear-gradient(135deg, #22d3ee, #818cf8)", color: "#04080e",
+          boxShadow: "0 4px 16px rgba(34,211,238,0.25)", opacity: loading ? 0.7 : 1
+        }}>
+        {loading ? <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> : <Play size={14} fill="#04080e" />}
+        {loading ? "Running…" : "Run Demo"}
+      </motion.button>
     );
   }
 
   return (
-    <GlassCard className="overflow-hidden">
-      <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+    <div className="glass" style={{ borderRadius: 16, padding: "28px", overflow: "hidden", position: "relative" }}>
+      {/* Background accent */}
+      <div style={{ position: "absolute", top: -60, right: -60, width: 200, height: 200, borderRadius: "50%", background: "radial-gradient(circle, rgba(34,211,238,0.08) 0%, transparent 70%)", pointerEvents: "none" }} />
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 20, position: "relative" }}>
         <div>
-          <StatusPill tone="live">First-prize demo path</StatusPill>
-          <h1 className="mt-4 max-w-3xl text-4xl font-semibold tracking-normal text-white md:text-6xl">
-            Metered APIs for autonomous agents, paid per call on Solana.
+          <span className="pill pill-live" style={{ marginBottom: 12, display: "inline-flex" }}>First-prize demo path</span>
+          <h1 style={{ margin: 0, fontSize: "clamp(22px, 3.5vw, 40px)", fontWeight: 900, color: "#eef2f7", letterSpacing: "-0.04em", lineHeight: 1.1 }}>
+            Metered APIs for autonomous agents,{" "}
+            <span className="gradient-text">paid per call on Solana.</span>
           </h1>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
-            Dodo handles checkout, credits, usage billing, webhooks, and receipts. AgentMeter handles HTTP
-            402 challenges, Solana x402 settlement, and protected API fulfillment.
+          <p style={{ margin: "14px 0 0", fontSize: 15, lineHeight: 1.65, color: "#8899aa", maxWidth: 580 }}>
+            Dodo handles checkout, credits, usage billing, webhooks, and receipts.
+            AgentMeter handles HTTP 402 challenges, Solana x402 settlement, and protected API fulfillment.
           </p>
         </div>
-        <div className="w-full shrink-0 md:w-72">
-          <Button type="button" size="lg" className="w-full" onClick={runDemo} disabled={loading}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-            Run Agent Payment Demo
-          </Button>
-          <div className="mt-3 rounded-lg border border-white/10 bg-black/20 p-3 text-sm text-slate-300">
-            {lastRun ? (
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-mint" aria-hidden="true" />
-                Completed: {lastRun.txSignature}
-              </div>
-            ) : error ? (
-              <span className="text-rose">{error}</span>
-            ) : (
-              <div className="flex items-center gap-2">
-                Shows 402 <ArrowRight className="h-4 w-4" aria-hidden="true" /> payment{" "}
-                <ArrowRight className="h-4 w-4" aria-hidden="true" /> Dodo usage.
-              </div>
-            )}
-          </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+          <motion.button
+            whileHover={{ scale: 1.03, boxShadow: "0 10px 36px rgba(34,211,238,0.4)" }}
+            whileTap={{ scale: 0.97 }}
+            onClick={runDemo} disabled={loading}
+            style={{
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "13px 28px", borderRadius: 12, fontSize: 15, fontWeight: 700,
+              background: "linear-gradient(135deg, #22d3ee, #818cf8)", color: "#04080e",
+              border: "none", cursor: loading ? "not-allowed" : "pointer",
+              boxShadow: "0 6px 28px rgba(34,211,238,0.32)", opacity: loading ? 0.75 : 1,
+              transition: "opacity 200ms"
+            }}
+          >
+            {loading ? <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> : <Play size={16} fill="#04080e" />}
+            {loading ? "Executing x402 flow…" : "Run Agent Payment Demo"}
+          </motion.button>
+
+          {/* Status bar */}
+          <AnimatePresence mode="wait">
+            <motion.div key={lastRun?.id ?? error ?? "idle"}
+              initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
+              style={{
+                display: "flex", alignItems: "center", gap: 8,
+                padding: "10px 14px", borderRadius: 10,
+                background: lastRun ? "rgba(52,211,153,0.08)" : error ? "rgba(251,113,133,0.08)" : "rgba(255,255,255,0.04)",
+                border: `1px solid ${lastRun ? "rgba(52,211,153,0.22)" : error ? "rgba(251,113,133,0.22)" : "rgba(255,255,255,0.09)"}`,
+                fontSize: 13, color: lastRun ? "#34d399" : error ? "#fb7185" : "#8899aa"
+              }}
+            >
+              {lastRun ? <CheckCircle size={14} /> : error ? null : <Activity size={14} />}
+              <span>
+                {lastRun
+                  ? `✓ ${lastRun.txSignature?.slice(0, 28)}…`
+                  : error || "Shows 402 → Solana payment → Dodo usage event"}
+              </span>
+              {!lastRun && !error && <ArrowRight size={12} />}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
-    </GlassCard>
+    </div>
   );
 }

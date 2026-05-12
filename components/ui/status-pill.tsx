@@ -1,42 +1,15 @@
-import { CheckCircle2, CircleAlert, Clock3, RadioTower } from "lucide-react";
+import type { ReactNode } from "react";
 
-import { cn } from "@/lib/utils";
+type Tone = "live" | "pending" | "error" | "cyan" | "violet";
 
-const styles = {
-  live: "border-mint/30 bg-mint/12 text-mint",
-  pending: "border-amber/30 bg-amber/12 text-amber",
-  error: "border-rose/30 bg-rose/12 text-rose",
-  neutral: "border-white/15 bg-white/8 text-slate-300"
-} as const;
-
-const icons = {
-  live: CheckCircle2,
-  pending: Clock3,
-  error: CircleAlert,
-  neutral: RadioTower
+const cls: Record<Tone, string> = {
+  live:    "pill pill-live",
+  pending: "pill pill-pending",
+  error:   "pill pill-error",
+  cyan:    "pill pill-cyan",
+  violet:  "pill pill-violet",
 };
 
-export function StatusPill({
-  tone = "neutral",
-  children,
-  className
-}: {
-  tone?: keyof typeof styles;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  const Icon = icons[tone];
-
-  return (
-    <span
-      className={cn(
-        "inline-flex min-h-8 items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium",
-        styles[tone],
-        className
-      )}
-    >
-      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-      {children}
-    </span>
-  );
+export function StatusPill({ tone = "pending", children }: { tone?: Tone; children: ReactNode }) {
+  return <span className={cls[tone]}>{children}</span>;
 }

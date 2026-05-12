@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       buyerId: buyer.id,
       providerId: checkout.providerId,
       idempotencyKey: checkout.idempotencyKey,
-      checkoutUrl: checkout.checkoutUrl,
+      checkoutUrl: checkout.checkoutUrl ?? checkout.providerId ?? "pending",
       productId: checkout.productId,
       amountUsd: input.amountUsd,
       rawStatus: checkout.rawStatus,
