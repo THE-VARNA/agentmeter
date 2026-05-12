@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import {
   Activity, ArrowRight, Cable, ChevronRight,
-  Coins, GitBranch, Gauge, Play, Shield, Zap
+  Coins, Gauge, Play, Shield, Zap
 } from "lucide-react";
 import Link from "next/link";
 
@@ -63,10 +63,6 @@ export default function LandingPage() {
             <span style={{ fontSize: 15, fontWeight: 700, color: "#eef2f7", letterSpacing: "-0.02em" }}>AgentMeter</span>
           </Link>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <a href="https://github.com" target="_blank" rel="noreferrer"
-              style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.09)", background: "transparent", color: "#8899aa", fontSize: 13, textDecoration: "none" }}>
-              <GitBranch size={14} /> GitHub
-            </a>
             <Link href="/dashboard" style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 16px", borderRadius: 9, fontSize: 13, fontWeight: 600, background: "linear-gradient(135deg, #22d3ee, #818cf8)", color: "#04080e", textDecoration: "none", boxShadow: "0 4px 14px rgba(34,211,238,0.25)" }}>
               Launch app <ArrowRight size={13} />
             </Link>
@@ -159,7 +155,7 @@ export default function LandingPage() {
 
       {/* STATS */}
       <section style={{ padding: "20px 24px 80px" }}>
-        <div style={{ maxWidth: 900, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16 }}>
+        <div style={{ maxWidth: 900, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
           {stats.map((s, i) => (
             <FadeUp key={s.label} delay={i * 0.08}>
               <div className="glass hover-gradient-border" style={{ borderRadius: 14, padding: "24px 20px", textAlign: "center", cursor: "default" }}>
@@ -184,7 +180,7 @@ export default function LandingPage() {
             </div>
           </FadeUp>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 20 }}>
             {steps.map((step, i) => {
               const Icon = step.icon;
               return (

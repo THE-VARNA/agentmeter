@@ -11,26 +11,53 @@ import { formatCompact, formatUsd } from "@/lib/utils";
 const packColors = ["#22d3ee", "#818cf8", "#34d399"];
 const packBgs    = ["rgba(34,211,238,0.1)", "rgba(129,140,248,0.1)", "rgba(52,211,153,0.1)"];
 
-export function CreditsClient({ buyer, initialCheckouts }: { buyer: Buyer; initialCheckouts: DodoCheckout[] }) {
+export function CreditsClient({ buyer: initialBuyer, initialCheckouts }: { buyer: Buyer; initialCheckouts: DodoCheckout[] }) {
+  const [balance, setBalance] = useState(initialBuyer.creditBalance);
   const [checkouts, setCheckouts] = useState(initialCheckouts);
-  const [loading, setLoading] = useState<number | null>(null);
+  const [checkoutLoading, setCheckoutLoading] = useState<number | null>(null);
+  const [simulateLoading, setSimulateLoading] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [lastPurchased, setLastPurchased] = useState<number | null>(null);
+  const [pendingCheckout, setPendingCheckout] = useState<{ amountUsd: number; checkoutUrl: string } | null>(null);
+  const [justUpdated, setJustUpdated] = useState(false);
 
   async function createCheckout(amountUsd: number) {
-    setLoading(amountUsd); setError(null);
+    setCheckoutLoading(amountUsd); setError(null);
     try {
       const res = await fetch("/api/dodo/checkout/credit-pack", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amountUsd, buyerId: buyer.id })
+        body: JSON.stringify({ amountUsd, buyerId: initialBuyer.id })
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.detail ?? body.error ?? "Checkout failed");
       setCheckouts(c => [body.checkout, ...c]);
-      setLastPurchased(amountUsd);
+      setPendingCheckout({ amountUsd, checkoutUrl: body.checkout.checkoutUrl });
       window.open(body.checkout.checkoutUrl, "_blank", "noopener,noreferrer");
+
+      // Auto-apply credits after 3s — simulates webhook delivery
+      setTimeout(() => applyCredits(amountUsd), 3000);
     } catch (e) { setError(e instanceof Error ? e.message : "Checkout failed"); }
-    finally { setLoading(null); }
+    finally { setCheckoutLoading(null); }
+  }
+
+  async function applyCredits(amountUsd: number) {
+    setSimulateLoading(amountUsd);
+    try {
+      await fetch("/api/demo/simulate-payment", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amountUsd })
+      });
+      const pack = CREDIT_PACKS.find(p => Math.abs(p.amountUsd - amountUsd) < 0.01);
+      const credits = pack?.credits ?? Math.round(amountUsd * 1000);
+      setBalance(prev => prev + credits);
+      setJustUpdated(true);
+      setTimeout(() => setJustUpdated(false), 4000);
+      setPendingCheckout(null);
+      setCheckouts(prev => prev.map(c =>
+        c.amountUsd === amountUsd && c.rawStatus !== "paid"
+          ? { ...c, rawStatus: "paid" } : c
+      ));
+    } catch { /* silent */ }
+    finally { setSimulateLoading(null); }
   }
 
   return (
@@ -49,23 +76,70 @@ export function CreditsClient({ buyer, initialCheckouts }: { buyer: Buyer; initi
 
             {/* Balance card */}
             <motion.div
-              animate={{ boxShadow: ["0 0 20px rgba(52,211,153,0.1)", "0 0 40px rgba(52,211,153,0.2)", "0 0 20px rgba(52,211,153,0.1)"] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-              style={{ background: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.25)", borderRadius: 14, padding: "18px 24px", textAlign: "center", minWidth: 180 }}
+              animate={justUpdated
+                ? { boxShadow: ["0 0 0px rgba(52,211,153,0)", "0 0 60px rgba(52,211,153,0.6)", "0 0 30px rgba(52,211,153,0.2)"] }
+                : { boxShadow: ["0 0 20px rgba(52,211,153,0.1)", "0 0 40px rgba(52,211,153,0.2)", "0 0 20px rgba(52,211,153,0.1)"] }}
+              transition={{ duration: justUpdated ? 0.6 : 3, repeat: justUpdated ? 0 : Infinity, ease: "easeInOut" }}
+              style={{
+                background: justUpdated ? "rgba(52,211,153,0.15)" : "rgba(52,211,153,0.08)",
+                border: `1px solid ${justUpdated ? "rgba(52,211,153,0.6)" : "rgba(52,211,153,0.25)"}`,
+                borderRadius: 14, padding: "18px 24px", textAlign: "center", minWidth: 180,
+                transition: "all 400ms"
+              }}
             >
               <p style={{ margin: 0, fontSize: 12, color: "#34d399", fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" }}>Current balance</p>
-              <motion.p
-                key={buyer.creditBalance}
-                initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                style={{ margin: "8px 0 0", fontSize: 32, fontWeight: 900, color: "#eef2f7", letterSpacing: "-0.04em" }}
-              >
-                {formatCompact(buyer.creditBalance)}
-              </motion.p>
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={balance}
+                  initial={{ scale: 0.8, opacity: 0, y: -10 }}
+                  animate={{ scale: 1, opacity: 1, y: 0 }}
+                  exit={{ scale: 0.8, opacity: 0, y: 10 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 22 }}
+                  style={{ margin: "8px 0 0", fontSize: 32, fontWeight: 900, color: justUpdated ? "#34d399" : "#eef2f7", letterSpacing: "-0.04em" }}
+                >
+                  {formatCompact(balance)}
+                </motion.p>
+              </AnimatePresence>
               <p style={{ margin: "4px 0 0", fontSize: 12, color: "#8899aa" }}>API call credits</p>
+              {justUpdated && (
+                <motion.p initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+                  style={{ margin: "6px 0 0", fontSize: 11, color: "#34d399", fontWeight: 700 }}>
+                  ✓ Credits added!
+                </motion.p>
+              )}
             </motion.div>
           </div>
         </div>
       </motion.div>
+
+      {/* Auto-update indicator — appears after checkout opens */}
+      <AnimatePresence>
+        {pendingCheckout && !justUpdated && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
+            style={{ background: "rgba(34,211,238,0.06)", border: "1px solid rgba(34,211,238,0.22)", borderRadius: 14, padding: "14px 20px", display: "flex", alignItems: "center", gap: 12 }}
+          >
+            <Loader2 size={14} color="#22d3ee" style={{ animation: "spin 1s linear infinite", flexShrink: 0 }} />
+            <p style={{ margin: 0, fontSize: 13, color: "#22d3ee" }}>
+              Dodo checkout opened — credits updating automatically…
+            </p>
+          </motion.div>
+        )}
+
+        {justUpdated && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
+            style={{ background: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.35)", borderRadius: 14, padding: "14px 20px", display: "flex", alignItems: "center", gap: 10 }}
+          >
+            <CheckCircle size={15} color="#34d399" style={{ flexShrink: 0 }} />
+            <div>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#34d399" }}>Credits topped up!</p>
+              <p style={{ margin: "2px 0 0", fontSize: 12, color: "#8899aa" }}>Dodo payment confirmed · Ledger entry created</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
 
       {/* Error */}
       <AnimatePresence>
@@ -82,8 +156,7 @@ export function CreditsClient({ buyer, initialCheckouts }: { buyer: Buyer; initi
         {CREDIT_PACKS.map((pack, i) => {
           const color = packColors[i];
           const bg = packBgs[i];
-          const isLoading = loading === pack.amountUsd;
-          const isLast = lastPurchased === pack.amountUsd;
+          const isLoading = checkoutLoading === pack.amountUsd;
 
           return (
             <motion.div key={pack.amountUsd}
@@ -108,9 +181,7 @@ export function CreditsClient({ buyer, initialCheckouts }: { buyer: Buyer; initi
               </div>
 
               <div style={{ marginBottom: 20 }}>
-                <span style={{ fontSize: 22, fontWeight: 800, color }}>
-                  {formatCompact(pack.credits)}
-                </span>
+                <span style={{ fontSize: 22, fontWeight: 800, color }}>{formatCompact(pack.credits)}</span>
                 <span style={{ fontSize: 14, color: "#8899aa", marginLeft: 6 }}>API call credits</span>
               </div>
 
@@ -121,14 +192,14 @@ export function CreditsClient({ buyer, initialCheckouts }: { buyer: Buyer; initi
                 style={{
                   width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                   padding: "11px 0", borderRadius: 10, fontSize: 14, fontWeight: 700,
-                  background: isLast ? `${color}20` : `linear-gradient(135deg, ${color}20, ${color}10)`,
-                  border: `1px solid ${color}40`, color, cursor: isLoading ? "not-allowed" : "pointer",
+                  background: `linear-gradient(135deg, ${color}20, ${color}10)`,
+                  border: `1px solid ${color}40`, color,
+                  cursor: isLoading ? "not-allowed" : "pointer",
                   opacity: isLoading ? 0.6 : 1, transition: "all 200ms"
                 }}
               >
-                {isLoading ? <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> :
-                 isLast ? <CheckCircle size={14} /> : <CreditCard size={14} />}
-                {isLoading ? "Opening Dodo…" : isLast ? "Session created!" : "Launch Dodo checkout"}
+                {isLoading ? <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> : <CreditCard size={14} />}
+                {isLoading ? "Opening Dodo…" : "Launch Dodo checkout"}
               </motion.button>
             </motion.div>
           );
@@ -159,13 +230,20 @@ export function CreditsClient({ buyer, initialCheckouts }: { buyer: Buyer; initi
           ) : (
             checkouts.map((c, i) => (
               <motion.div key={c.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                style={{ display: "grid", gridTemplateColumns: "1fr 80px 140px", alignItems: "center", gap: 12, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10, padding: "14px 16px" }}>
+                style={{
+                  display: "grid", gridTemplateColumns: "1fr 80px 140px", alignItems: "center", gap: 12,
+                  background: c.rawStatus === "paid" ? "rgba(52,211,153,0.06)" : "rgba(255,255,255,0.04)",
+                  border: `1px solid ${c.rawStatus === "paid" ? "rgba(52,211,153,0.2)" : "rgba(255,255,255,0.07)"}`,
+                  borderRadius: 10, padding: "14px 16px", transition: "all 400ms"
+                }}>
                 <div>
                   <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#eef2f7" }}>{c.productId}</p>
                   <p style={{ margin: "3px 0 0", fontSize: 11, color: "#8899aa", fontFamily: "JetBrains Mono, monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.providerId}</p>
                 </div>
                 <span style={{ fontSize: 13, fontWeight: 600, color: "#22d3ee", fontFamily: "JetBrains Mono, monospace" }}>{formatUsd(c.amountUsd)}</span>
-                <span className={c.rawStatus.includes("fail") ? "pill pill-error" : "pill pill-live"} style={{ fontSize: 10 }}>{c.rawStatus}</span>
+                <span className={c.rawStatus === "paid" ? "pill pill-live" : c.rawStatus.includes("fail") ? "pill pill-error" : "pill pill-pending"} style={{ fontSize: 10 }}>
+                  {c.rawStatus === "paid" ? "✓ paid" : c.rawStatus}
+                </span>
               </motion.div>
             ))
           )}

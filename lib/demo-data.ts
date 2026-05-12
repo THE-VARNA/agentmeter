@@ -102,36 +102,132 @@ function seedEndpoints(merchantId: string): Endpoint[] {
 function createInitialStore(): MutableStore {
   const merchant = seedMerchant();
   const buyer = seedBuyer(merchant.id);
-  const createdAt = nowIso();
+  const endpoints = seedEndpoints(merchant.id);
+  const now = Date.now();
+  const ts = (offsetMs: number) => new Date(now - offsetMs).toISOString();
+
+  const seedGatewayRequests: GatewayRequest[] = [
+    {
+      id: "gw_seed_001", endpointId: "end_weather", buyerId: buyer.id,
+      method: "GET", path: "/gateway/weather-alpha", statusCode: 200,
+      rawStatus: "fulfilled", providerId: "demo_sig_seed_001",
+      idempotencyKey: "seed_gw_001", latencyMs: 182, amountUsd: 0.001,
+      txSignature: "seed_tx_4xDEMO1aGW7ZkU9P2hQnLmFv3YrBsC8oKjX5wEtNiVp",
+      createdAt: ts(420000)
+    },
+    {
+      id: "gw_seed_002", endpointId: "end_risk", buyerId: buyer.id,
+      method: "GET", path: "/gateway/risk-score", statusCode: 200,
+      rawStatus: "fulfilled", providerId: "demo_sig_seed_002",
+      idempotencyKey: "seed_gw_002", latencyMs: 241, amountUsd: 0.01,
+      txSignature: "seed_tx_9yRISK2bHX8MnV4cF6wPqAuE1ZoKjL7gDtSmWiCvBr",
+      createdAt: ts(300000)
+    },
+    {
+      id: "gw_seed_003", endpointId: "end_weather", buyerId: buyer.id,
+      method: "GET", path: "/gateway/weather-alpha", statusCode: 200,
+      rawStatus: "fulfilled", providerId: "demo_sig_seed_003",
+      idempotencyKey: "seed_gw_003", latencyMs: 167, amountUsd: 0.001,
+      txSignature: "seed_tx_3mWEATH5cPq2xL8kD9nVfBgYrJoZiU6tEsAhNwCvXm",
+      createdAt: ts(120000)
+    }
+  ];
+
+  const seedX402Payments: X402Payment[] = [
+    {
+      id: "x402_seed_001", endpointId: "end_weather", buyerId: buyer.id,
+      gatewayRequestId: "gw_seed_001", providerId: "demo_sig_seed_001",
+      idempotencyKey: "seed_x402_001", scheme: "exact",
+      network: merchant.x402Network, amountUsd: 0.001,
+      payTo: merchant.solanaWallet,
+      txSignature: "seed_tx_4xDEMO1aGW7ZkU9P2hQnLmFv3YrBsC8oKjX5wEtNiVp",
+      settlementStatus: "verified_devnet", rawStatus: "settled",
+      createdAt: ts(420000)
+    },
+    {
+      id: "x402_seed_002", endpointId: "end_risk", buyerId: buyer.id,
+      gatewayRequestId: "gw_seed_002", providerId: "demo_sig_seed_002",
+      idempotencyKey: "seed_x402_002", scheme: "exact",
+      network: merchant.x402Network, amountUsd: 0.01,
+      payTo: merchant.solanaWallet,
+      txSignature: "seed_tx_9yRISK2bHX8MnV4cF6wPqAuE1ZoKjL7gDtSmWiCvBr",
+      settlementStatus: "verified_devnet", rawStatus: "settled",
+      createdAt: ts(300000)
+    }
+  ];
+
+  const seedDemoRuns: DemoRun[] = [
+    {
+      id: "demo_seed_001", merchantId: merchant.id,
+      providerId: "demo_sig_seed_001", idempotencyKey: "seed_demo_001",
+      rawStatus: "completed", endpointSlug: "weather-alpha",
+      amountUsd: 0.001,
+      txSignature: "seed_tx_4xDEMO1aGW7ZkU9P2hQnLmFv3YrBsC8oKjX5wEtNiVp",
+      dodoPaymentId: "dodo_evt_seed_001",
+      steps: [],
+      createdAt: ts(420000)
+    }
+  ];
+
+  const seedCreditEntries: CreditLedgerEntry[] = [
+    {
+      id: "cle_seed",
+      buyerId: buyer.id,
+      providerId: "seed_credit_grant",
+      idempotencyKey: "seed_credit_grant",
+      eventType: "credit.added",
+      rawStatus: "seeded",
+      amount: 25000,
+      balanceBefore: 0,
+      balanceAfter: 25000,
+      reason: "Seeded hackathon demo credits for per-request API access",
+      createdAt: ts(600000)
+    },
+    {
+      id: "cle_seed_deduct_001",
+      buyerId: buyer.id,
+      providerId: "demo_sig_seed_001",
+      idempotencyKey: "seed_deduct_001",
+      eventType: "credit.deducted",
+      rawStatus: "demo_mode_ingested",
+      amount: -1,
+      balanceBefore: 25000,
+      balanceAfter: 24999,
+      reason: "Dodo usage event for weather-alpha",
+      txSignature: "seed_tx_4xDEMO1aGW7ZkU9P2hQnLmFv3YrBsC8oKjX5wEtNiVp",
+      createdAt: ts(420000)
+    },
+    {
+      id: "cle_seed_deduct_002",
+      buyerId: buyer.id,
+      providerId: "demo_sig_seed_002",
+      idempotencyKey: "seed_deduct_002",
+      eventType: "credit.deducted",
+      rawStatus: "demo_mode_ingested",
+      amount: -1,
+      balanceBefore: 24999,
+      balanceAfter: 24998,
+      reason: "Dodo usage event for risk-score",
+      txSignature: "seed_tx_9yRISK2bHX8MnV4cF6wPqAuE1ZoKjL7gDtSmWiCvBr",
+      createdAt: ts(300000)
+    }
+  ];
 
   return {
     merchant,
-    buyers: [buyer],
-    endpoints: seedEndpoints(merchant.id),
-    gatewayRequests: [],
-    x402Payments: [],
+    buyers: [{ ...buyer, creditBalance: 24998 }],
+    endpoints,
+    gatewayRequests: seedGatewayRequests,
+    x402Payments: seedX402Payments,
     dodoCheckouts: [],
     dodoWebhookEvents: [],
-    creditLedgerEntries: [
-      {
-        id: "cle_seed",
-        buyerId: buyer.id,
-        providerId: "seed_credit_grant",
-        idempotencyKey: "seed_credit_grant",
-        eventType: "credit.added",
-        rawStatus: "seeded",
-        amount: 25000,
-        balanceBefore: 0,
-        balanceAfter: 25000,
-        reason: "Seeded hackathon demo credits for per-request API access",
-        createdAt
-      }
-    ],
-    demoRuns: [],
+    creditLedgerEntries: seedCreditEntries,
+    demoRuns: seedDemoRuns,
     rateLimits: new Map(),
-    idempotencyKeys: new Set(["seed_credit_grant"])
+    idempotencyKeys: new Set(["seed_credit_grant", "seed_gw_001", "seed_gw_002", "seed_gw_003", "seed_x402_001", "seed_x402_002", "seed_demo_001"])
   };
 }
+
 
 export function getStore(): MutableStore {
   if (!globalForAgentMeter.agentMeterStore) {
