@@ -162,7 +162,7 @@ export async function getSerializableState() {
   // Race against a 4s timeout — if DB is unreachable (e.g. Neon can't be reached locally)
   // we fall back instantly to a static demo state instead of hanging for minutes.
   const timeout = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error("DB_TIMEOUT")), 15000)
+    setTimeout(() => reject(new Error("DB_TIMEOUT")), 8000)
   );
   try {
     return await Promise.race([getStore(), timeout]);
@@ -370,11 +370,11 @@ export async function recordDemoRun(input: Omit<DemoRun, "id" | "createdAt">) {
       steps: input.steps ? JSON.stringify(input.steps) : "[]"
     }
   });
-  return { 
-    ...d, 
-    amountUsd: Number(d.amountUsd), 
-    createdAt: d.createdAt.toISOString(), 
-    steps: typeof d.steps === "string" ? JSON.parse(d.steps) : d.steps 
+  return {
+    ...d,
+    amountUsd: Number(d.amountUsd),
+    createdAt: d.createdAt.toISOString(),
+    steps: typeof d.steps === "string" ? (JSON.parse(d.steps) || []) : (d.steps || [])
   };
 }
 
