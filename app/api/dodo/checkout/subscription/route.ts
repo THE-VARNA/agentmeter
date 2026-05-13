@@ -64,7 +64,11 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Dodo subscription checkout error:", error);
     return NextResponse.json(
-      { error: "Failed to create checkout session" },
+      { 
+        error: "Failed to create checkout session", 
+        detail: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      },
       { status: 500 }
     );
   }

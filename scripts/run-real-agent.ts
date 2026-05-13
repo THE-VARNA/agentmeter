@@ -41,14 +41,29 @@ async function runAutonomousAgent() {
     // In production, this would be: const signature = await connection.sendTransaction(tx, [agentWallet]);
     console.log("✍️  [AI Agent] Signing Solana Transaction...");
     await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate network delay
-    const simulatedSignature = `demo_tx_agent_${Date.now()}`;
+    const simulatedSignature = `demo_sig_agent_${Date.now()}`;
     console.log(`✅ [AI Agent] Transaction Confirmed on Devnet! Signature: ${simulatedSignature}`);
+
+    // Construct valid x402 payload
+    const paymentPayload = {
+      x402Version: 2,
+      scheme: "exact",
+      network: exactScheme.network,
+      payload: {
+        signature: simulatedSignature,
+        amountUsd: amountMicroUsdc / 1000000,
+        payTo: exactScheme.payTo,
+        endpointSlug: "weather-alpha",
+        nonce: Math.random().toString(36).substring(7)
+      }
+    };
+    const encodedPayload = btoa(JSON.stringify(paymentPayload));
 
     // STEP 4: Re-request with the PAYMENT-SIGNATURE header
     console.log("\n🚀 [AI Agent] Resubmitting request with cryptographic proof...");
     const paidResponse = await fetch(GATEWAY_URL, {
       headers: {
-        "PAYMENT-SIGNATURE": simulatedSignature
+        "PAYMENT-SIGNATURE": encodedPayload
       }
     });
 

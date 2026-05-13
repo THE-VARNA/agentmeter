@@ -118,6 +118,13 @@ export function AgentConsoleClient({ initialRun }: { initialRun?: DemoRun }) {
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>("upstreamResponse");
 
+  function reset() {
+    setRun(undefined);
+    setResponse(null);
+    setError(null);
+    setExpanded("upstreamResponse");
+  }
+
   async function execute() {
     setLoading(true); setError(null);
     try {
@@ -164,9 +171,10 @@ export function AgentConsoleClient({ initialRun }: { initialRun?: DemoRun }) {
   return (
     <div style={{ display: "grid", gap: 20 }}>
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="glass" style={{ borderRadius: 16, padding: "24px 28px" }}>
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+        style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        <div className="glass" style={{ borderRadius: 20, padding: "24px 30px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
             <div>
               <span className="pill pill-violet" style={{ marginBottom: 10, display: "inline-flex" }}>Scripted judge path</span>
               <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: "#eef2f7", letterSpacing: "-0.03em" }}>Agent Console</h1>
@@ -174,18 +182,35 @@ export function AgentConsoleClient({ initialRun }: { initialRun?: DemoRun }) {
                 Watch an AI agent hit a paid route, receive HTTP 402, pay on Solana, and trigger Dodo usage metering.
               </p>
             </div>
-            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-              onClick={execute} disabled={loading}
-              style={{
-                display: "flex", alignItems: "center", gap: 8, flexShrink: 0,
-                padding: "12px 24px", borderRadius: 12, fontSize: 14, fontWeight: 700,
-                background: "linear-gradient(135deg, #22d3ee, #818cf8)",
-                color: "#04080e", border: "none", cursor: loading ? "not-allowed" : "pointer",
-                opacity: loading ? 0.7 : 1, boxShadow: "0 6px 24px rgba(34,211,238,0.3)"
-              }}>
-              {loading ? <Loader2 size={15} style={{ animation: "spin 1s linear infinite" }} /> : <Play size={15} fill="#04080e" />}
-              {loading ? "Executing…" : "Execute Flow"}
-            </motion.button>
+            
+            <div style={{ display: "flex", gap: 12 }}>
+              {run && !loading && (
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  onClick={reset}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    padding: "12px 20px", borderRadius: 12, fontSize: 14, fontWeight: 700,
+                    background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
+                    color: "#eef2f7", cursor: "pointer"
+                  }}>
+                  <RefreshCw size={15} />
+                  Reset
+                </motion.button>
+              )}
+              
+              <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                onClick={execute} disabled={loading}
+                style={{
+                  display: "flex", alignItems: "center", gap: 8, flexShrink: 0,
+                  padding: "12px 24px", borderRadius: 12, fontSize: 14, fontWeight: 700,
+                  background: "linear-gradient(135deg, #22d3ee, #818cf8)",
+                  color: "#04080e", border: "none", cursor: loading ? "not-allowed" : "pointer",
+                  opacity: loading ? 0.7 : 1, boxShadow: "0 6px 24px rgba(34,211,238,0.3)"
+                }}>
+                {loading ? <Loader2 size={15} style={{ animation: "spin 1s linear infinite" }} /> : <Play size={15} fill="#04080e" />}
+                {loading ? "Executing…" : "Execute Flow"}
+              </motion.button>
+            </div>
           </div>
         </div>
       </motion.div>

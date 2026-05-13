@@ -27,7 +27,7 @@ async function main() {
       email: "agent@buyer.example",
       name: "Autonomous Research Agent",
       agentWallet: "Fh3DemoAgent111111111111111111111111111111111",
-      dodoCustomerId: "cus_demo_agent",
+      dodoCustomerId: "demo_cus_agent",
       creditBalance: "25000"
     }
   });

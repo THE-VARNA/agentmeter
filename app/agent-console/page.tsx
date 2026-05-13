@@ -5,5 +5,5 @@ export const dynamic = "force-dynamic";
 
 export default async function AgentConsolePage() {
   const state = await getSerializableState();
-  return <AgentConsoleClient initialRun={state.demoRuns[0]} />;
+  return <AgentConsoleClient />;
 }

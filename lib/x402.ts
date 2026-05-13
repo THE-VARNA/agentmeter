@@ -12,7 +12,7 @@ export type X402Requirement = {
   accepts: Array<{
     scheme: "exact";
     network: string;
-    price: string;
+    maxAmountRequired: string;
     payTo: string;
     asset: {
       symbol: "USDC";
@@ -47,7 +47,7 @@ export function buildX402Requirement(endpoint: Endpoint, merchant: Merchant): X4
       {
         scheme: "exact",
         network: merchant.x402Network,
-        price: `$${endpoint.priceUsd}`,
+        maxAmountRequired: (endpoint.priceUsd * 1000000).toString(),
         payTo: merchant.solanaWallet,
         asset: {
           symbol: "USDC",

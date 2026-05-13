@@ -219,7 +219,13 @@ export async function recordGatewayRequest(input: Omit<GatewayRequest, "id" | "c
     });
   }
 
-  return { ...gw, amountUsd: Number(gw.amountUsd), createdAt: gw.createdAt.toISOString() };
+  return { 
+    ...gw, 
+    amountUsd: Number(gw.amountUsd), 
+    createdAt: gw.createdAt.toISOString(),
+    requestBody: typeof gw.requestBody === "string" ? JSON.parse(gw.requestBody) : gw.requestBody,
+    responseBody: typeof gw.responseBody === "string" ? JSON.parse(gw.responseBody) : gw.responseBody
+  };
 }
 
 export async function recordX402Payment(input: Omit<X402Payment, "id" | "createdAt">) {
@@ -240,7 +246,12 @@ export async function recordX402Payment(input: Omit<X402Payment, "id" | "created
       rawPayload: input.rawPayload ? JSON.stringify(input.rawPayload) : undefined
     }
   });
-  return { ...x, amountUsd: Number(x.amountUsd), createdAt: x.createdAt.toISOString() };
+  return { 
+    ...x, 
+    amountUsd: Number(x.amountUsd), 
+    createdAt: x.createdAt.toISOString(),
+    rawPayload: typeof x.rawPayload === "string" ? JSON.parse(x.rawPayload) : x.rawPayload
+  };
 }
 
 export async function recordCheckout(input: Omit<DodoCheckout, "id" | "createdAt" | "updatedAt">) {
@@ -258,7 +269,12 @@ export async function recordCheckout(input: Omit<DodoCheckout, "id" | "createdAt
       rawPayload: input.rawPayload ? JSON.stringify(input.rawPayload) : undefined
     }
   });
-  return { ...c, amountUsd: Number(c.amountUsd), createdAt: c.createdAt.toISOString() };
+  return { 
+    ...c, 
+    amountUsd: Number(c.amountUsd), 
+    createdAt: c.createdAt.toISOString(),
+    rawPayload: typeof c.rawPayload === "string" ? JSON.parse(c.rawPayload) : c.rawPayload
+  };
 }
 
 export async function recordWebhook(input: Omit<DodoWebhookEvent, "id" | "createdAt">) {
@@ -277,7 +293,12 @@ export async function recordWebhook(input: Omit<DodoWebhookEvent, "id" | "create
       rawPayload: input.rawPayload ? JSON.stringify(input.rawPayload) : "{}"
     }
   });
-  return { ...w, parsedAmount: w.parsedAmount ? Number(w.parsedAmount) : undefined, createdAt: w.createdAt.toISOString() };
+  return { 
+    ...w, 
+    parsedAmount: w.parsedAmount ? Number(w.parsedAmount) : undefined, 
+    createdAt: w.createdAt.toISOString(),
+    rawPayload: typeof w.rawPayload === "string" ? JSON.parse(w.rawPayload) : w.rawPayload
+  };
 }
 
 export async function adjustCredits(input: {
@@ -343,7 +364,12 @@ export async function recordDemoRun(input: Omit<DemoRun, "id" | "createdAt">) {
       steps: input.steps ? JSON.stringify(input.steps) : "[]"
     }
   });
-  return { ...d, amountUsd: Number(d.amountUsd), createdAt: d.createdAt.toISOString(), steps: d.steps as any };
+  return { 
+    ...d, 
+    amountUsd: Number(d.amountUsd), 
+    createdAt: d.createdAt.toISOString(), 
+    steps: typeof d.steps === "string" ? JSON.parse(d.steps) : d.steps 
+  };
 }
 
 export async function getLedger(): Promise<LedgerItem[]> {
