@@ -127,8 +127,16 @@ export function AgentConsoleClient({ initialRun }: { initialRun?: DemoRun }) {
 
   async function execute() {
     setLoading(true); setError(null);
-    // Auto-scroll to timeline
-    document.getElementById("payment-timeline")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    
+    // Improved auto-scroll logic
+    setTimeout(() => {
+      const el = document.getElementById("payment-timeline");
+      if (el) {
+        const yOffset = -100; // Leave some space at the top
+        const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+        window.scrollTo({ top: y, behavior: "smooth" });
+      }
+    }, 10);
     
     try {
       const res = await fetch("/api/demo/run", {
