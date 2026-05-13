@@ -1,10 +1,17 @@
 import { PrismaNeon } from "@prisma/adapter-neon";
 import { PrismaClient } from "@prisma/client";
 
-// Official Neon + Prisma 7 pattern:
-// PrismaNeon handles the connection pool internally — no need for a separate Pool
-// or @neondatabase/serverless import here. The adapter-neon package bundles everything.
-// See: https://neon.tech/docs/guides/prisma
+// Neon's serverless driver needs a WebSocket constructor in Node.js environments.
+// Node.js 21+ has native globalThis.WebSocket; older Node (and some serverless runtimes) need 'ws'.
+// @prisma/adapter-neon bundles @neondatabase/serverless internally, so we just need to
+// ensure the WebSocket polyfill is registered globally if it's missing.
+if (typeof globalThis.WebSocket === "undefined") {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { neonConfig } = require("@neondatabase/serverless");
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const ws = require("ws");
+  neonConfig.webSocketConstructor = ws;
+}
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
