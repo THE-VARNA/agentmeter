@@ -1,4 +1,4 @@
-import { AgentConsoleClient } from "@/components/demo/agent-console-client";
+import { AgentConsoleNoSSR } from "@/components/demo/agent-console-no-ssr";
 import { getSerializableState } from "@/lib/demo-data";
 
 export const dynamic = "force-dynamic";
@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export default async function AgentConsolePage() {
   try {
     const state = await getSerializableState();
-    return <AgentConsoleClient />;
+    return <AgentConsoleNoSSR />;
   } catch (error) {
     console.error("AgentConsolePage error:", error);
     return (

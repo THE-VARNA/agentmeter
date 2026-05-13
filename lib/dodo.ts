@@ -36,7 +36,7 @@ export async function createDodoCreditPackCheckout(
     const sessionParams: Record<string, unknown> = {
       product_cart: [{ product_id: productId, quantity: 1 }],
       allowed_payment_method_types: [DODO_STABLECOIN_METHOD, ...DODO_PAYMENT_FALLBACKS],
-      return_url: `${APP_URL}/credits?checkout=success`,
+      return_url: `${APP_URL}/credits?checkout=success&amount=${input.amountUsd}`,
       cancel_url: `${APP_URL}/credits?checkout=cancelled`,
       metadata: {
         product: "agentmeter-credit-pack",
@@ -100,7 +100,7 @@ export async function createDodoSubscriptionCheckout(input: {
     const sessionParams: Record<string, unknown> = {
       product_cart: [{ product_id: input.productId, quantity: 1 }],
       allowed_payment_method_types: [DODO_STABLECOIN_METHOD, ...DODO_PAYMENT_FALLBACKS],
-      return_url: `${APP_URL}/credits?checkout=success`,
+      return_url: `${APP_URL}/credits?checkout=success&amount=${input.amountUsd}`,
       cancel_url: `${APP_URL}/credits?checkout=cancelled`,
       metadata: {
         product: "agentmeter-subscription",

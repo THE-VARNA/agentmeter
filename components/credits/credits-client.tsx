@@ -1,8 +1,9 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { CheckCircle, CreditCard, ExternalLink, Loader2, WalletCards } from "lucide-react";
-import { useState } from "react";
+import { CheckCircle, CreditCard, ExternalLink, Loader2, RefreshCw, WalletCards } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { DodoOverlay } from "@/components/credits/dodo-overlay";
 import { CREDIT_PACKS, DODO_STABLECOIN_METHOD, SUBSCRIPTION_PLANS } from "@/lib/constants";
@@ -13,6 +14,7 @@ const packColors = ["#22d3ee", "#818cf8", "#34d399"];
 const packBgs    = ["rgba(34,211,238,0.1)", "rgba(129,140,248,0.1)", "rgba(52,211,153,0.1)"];
 
 export function CreditsClient({ buyer: initialBuyer, initialCheckouts }: { buyer: Buyer; initialCheckouts: DodoCheckout[] }) {
+  const searchParams = useSearchParams();
   const [balance, setBalance] = useState(initialBuyer.creditBalance);
   const [checkouts, setCheckouts] = useState(initialCheckouts);
   const [checkoutLoading, setCheckoutLoading] = useState<number | null>(null);
@@ -21,6 +23,27 @@ export function CreditsClient({ buyer: initialBuyer, initialCheckouts }: { buyer
   const [pendingCheckout, setPendingCheckout] = useState<{ amountUsd: number; checkoutUrl: string } | null>(null);
   const [overlayUrl, setOverlayUrl] = useState<string | null>(null);
   const [justUpdated, setJustUpdated] = useState(false);
+
+  // Handle successful redirects (e.g. from simulated checkout or real Dodo redirect)
+  useEffect(() => {
+    const checkoutStatus = searchParams.get("checkout");
+    const amount = searchParams.get("amount");
+    if (checkoutStatus === "simulated") {
+      const amountUsd = amount ? parseFloat(amount) : 0;
+      if (amountUsd > 0) {
+        applyCredits(amountUsd);
+      }
+    } else if (checkoutStatus === "success") {
+      // For real Dodo, the webhook handles the update, but we poll to show it live
+      setJustUpdated(true);
+      const interval = setInterval(refresh, 2500);
+      const timeout = setTimeout(() => {
+        clearInterval(interval);
+        setJustUpdated(false);
+      }, 10000);
+      return () => { clearInterval(interval); clearTimeout(timeout); };
+    }
+  }, [searchParams]);
 
   async function createCheckout(amountUsd: number, isSub = false, productId?: string) {
     setCheckoutLoading(amountUsd); setError(null);
@@ -72,6 +95,19 @@ export function CreditsClient({ buyer: initialBuyer, initialCheckouts }: { buyer
     finally { setSimulateLoading(null); }
   }
 
+  async function refresh() {
+    setError(null);
+    try {
+      const res = await fetch("/api/demo/state");
+      const body = await res.json();
+      if (res.ok && body.state?.buyers?.[0]) {
+        const b = body.state.buyers[0];
+        setBalance(b.creditBalance);
+        setCheckouts(body.state.dodoCheckouts || []);
+      }
+    } catch (e) { console.error("Refresh failed", e); }
+  }
+
   return (
     <div style={{ display: "grid", gap: 20 }}>
       {/* Dodo Overlay Modal */}
@@ -108,18 +144,24 @@ export function CreditsClient({ buyer: initialBuyer, initialCheckouts }: { buyer
               }}
             >
               <p style={{ margin: 0, fontSize: 12, color: "#34d399", fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" }}>Current balance</p>
-              <AnimatePresence mode="wait">
-                <motion.p
-                  key={balance}
-                  initial={{ scale: 0.8, opacity: 0, y: -10 }}
-                  animate={{ scale: 1, opacity: 1, y: 0 }}
-                  exit={{ scale: 0.8, opacity: 0, y: 10 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 22 }}
-                  style={{ margin: "8px 0 0", fontSize: 32, fontWeight: 900, color: justUpdated ? "#34d399" : "#eef2f7", letterSpacing: "-0.04em" }}
-                >
-                  {formatCompact(balance)}
-                </motion.p>
-              </AnimatePresence>
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 10 }}>
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={balance}
+                    initial={{ scale: 0.8, opacity: 0, y: -10 }}
+                    animate={{ scale: 1, opacity: 1, y: 0 }}
+                    exit={{ scale: 0.8, opacity: 0, y: 10 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 22 }}
+                    style={{ margin: "8px 0 0", fontSize: 32, fontWeight: 900, color: justUpdated ? "#34d399" : "#eef2f7", letterSpacing: "-0.04em" }}
+                  >
+                    {formatCompact(balance)}
+                  </motion.p>
+                </AnimatePresence>
+                <button onClick={refresh} title="Refresh balance"
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "#8899aa", padding: 4, display: "flex" }}>
+                  <RefreshCw size={14} />
+                </button>
+              </div>
               <p style={{ margin: "4px 0 0", fontSize: 12, color: "#8899aa" }}>API call credits</p>
               {justUpdated && (
                 <motion.p initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
