@@ -127,6 +127,9 @@ export function AgentConsoleClient({ initialRun }: { initialRun?: DemoRun }) {
 
   async function execute() {
     setLoading(true); setError(null);
+    // Auto-scroll to timeline
+    document.getElementById("payment-timeline")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    
     try {
       const res = await fetch("/api/demo/run", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -254,7 +257,7 @@ export function AgentConsoleClient({ initialRun }: { initialRun?: DemoRun }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 16 }}>
 
         {/* Payment Timeline */}
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+        <motion.div id="payment-timeline" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
           className="glass" style={{ borderRadius: 16, padding: "22px" }}>
           <h2 style={{ margin: "0 0 18px", fontSize: 14, fontWeight: 700, color: "#eef2f7" }}>Payment Timeline</h2>
           <div style={{ display: "grid", gap: 8 }}>

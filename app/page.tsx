@@ -69,7 +69,17 @@ export default function LandingPage() {
             </div>
             <span style={{ fontSize: 15, fontWeight: 700, color: "#eef2f7", letterSpacing: "-0.02em" }}>AgentMeter</span>
           </Link>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+            <div className="hide-mobile" style={{ display: "flex", alignItems: "center", gap: 24, marginRight: 8 }}>
+              {[
+                { label: "How it works", href: "#how-it-works" },
+                { label: "Features", href: "#features" },
+              ].map(l => (
+                <a key={l.href} href={l.href} style={{ fontSize: 13, fontWeight: 500, color: "#8899aa", textDecoration: "none", transition: "color 200ms" }} className="nav-link">
+                  {l.label}
+                </a>
+              ))}
+            </div>
             <Link href="/dashboard" style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 16px", borderRadius: 9, fontSize: 13, fontWeight: 600, background: "linear-gradient(135deg, #22d3ee, #818cf8)", color: "#04080e", textDecoration: "none", boxShadow: "0 4px 14px rgba(34,211,238,0.25)" }}>
               Launch app <ArrowRight size={13} />
             </Link>
@@ -174,7 +184,7 @@ export default function LandingPage() {
       </section>
 
       {/* HOW IT WORKS */}
-      <section style={{ padding: "60px 24px 100px" }}>
+      <section id="how-it-works" style={{ padding: "60px 24px 100px" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
           <FadeUp>
             <div style={{ textAlign: "center", marginBottom: 52 }}>
@@ -211,7 +221,7 @@ export default function LandingPage() {
       </section>
 
       {/* FEATURES */}
-      <section style={{ padding: "60px 24px 100px" }}>
+      <section id="features" style={{ padding: "60px 24px 100px" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
           <FadeUp>
             <div style={{ textAlign: "center", marginBottom: 48 }}>

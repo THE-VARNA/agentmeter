@@ -230,4 +230,12 @@ body::before {
 }
 .hover-gradient-border:hover::before { opacity:1; }
 
+/* Responsive utilities */
+@media (max-width: 768px) {
+  .hide-mobile { display: none !important; }
+}
+@media (min-width: 769px) {
+  .show-mobile { display: none !important; }
+}
+
 button, a, input, select, textarea { font: inherit; }
