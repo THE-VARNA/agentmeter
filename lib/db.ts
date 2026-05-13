@@ -24,11 +24,20 @@ function createPrismaClient() {
     console.warn("[AgentMeter] DATABASE_URL not set — DB calls will fail and fall back to demo state.");
   }
 
-  const adapter = new PrismaNeon({ connectionString: connectionString! });
-  return new PrismaClient({
-    adapter,
-    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
-  });
+  const isNeon = connectionString?.includes("neon.tech");
+
+  if (isNeon) {
+    const adapter = new PrismaNeon({ connectionString: connectionString! });
+    return new PrismaClient({
+      adapter,
+      log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+    });
+  } else {
+    // Local Postgres over TCP
+    return new PrismaClient({
+      log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+    });
+  }
 }
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
