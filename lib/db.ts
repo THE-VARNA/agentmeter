@@ -1,10 +1,14 @@
 import { Pool, neonConfig } from "@neondatabase/serverless";
 import { PrismaNeon } from "@prisma/adapter-neon";
 import { PrismaClient } from "@prisma/client";
-import ws from "ws";
 
-// Setup Neon WebSockets
-neonConfig.webSocketConstructor = ws;
+// Use native WebSocket in Node 18+ / Vercel runtime.
+// Fall back to the 'ws' polyfill only in environments that lack it (e.g. older Node).
+if (typeof globalThis.WebSocket === "undefined") {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const ws = require("ws");
+  neonConfig.webSocketConstructor = ws;
+}
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -14,7 +18,6 @@ function createPrismaClient() {
   const connectionString = process.env.DATABASE_URL;
 
   if (!connectionString) {
-    // In non-database environments (e.g. edge build preview), gracefully degrade
     console.warn("[AgentMeter] DATABASE_URL not set — Prisma initialised without a connection string.");
   }
 
