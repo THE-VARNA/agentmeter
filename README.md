@@ -1,4 +1,5 @@
 # AgentMeter ⚡️
+A Dodo + x402 gateway that lets AI/API companies sell metered MCP tools and APIs directly to autonomous agents using Solana stablecoin micro-payments. Target User & Pain Point: AI API founders and MCP server builders who want agents to pay per request without forcing API keys, accounts, invoices, or monthly subscriptions.
 
 A Dodo Payments + x402 gateway that lets AI/API companies sell metered MCP tools and APIs directly to autonomous agents using Solana stablecoin micro-payments.
 
@@ -110,6 +111,4 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## 🔒 Compliance Posture
 
-AgentMeter avoids Dodo-prohibited positioning: it is not a wallet, exchange, marketplace, escrow system, DeFi protocol, token launcher, or reseller platform. It is strictly **merchant-owned SaaS infrastructure** for selling metered access to a merchant’s own digital APIs and MCP capabilities.
