@@ -122,13 +122,52 @@ export async function getStore(): Promise<AppState> {
   };
 }
 
+function staticDemoState() {
+  const now = new Date().toISOString();
+  return {
+    merchant: {
+      id: "mer_demo", name: "AgentMeter Demo", slug: "agentmeter-demo",
+      dodoBusinessId: "biz_demo", dodoCustomerId: "cus_demo_merchant",
+      solanaWallet: MERCHANT_WALLET, x402Network: X402_NETWORK,
+      facilitatorUrl: X402_FACILITATOR_URL,
+      createdAt: now, updatedAt: now
+    },
+    buyers: [{
+      id: "buyer_demo_1", name: "Demo Agent", email: "agent@demo.xyz",
+      dodoCustomerId: "cus_demo_agent", creditBalance: 25000,
+      createdAt: now, updatedAt: now
+    }],
+    endpoints: [
+      { id: "ep_1", merchantId: "mer_demo", slug: "weather-alpha", name: "Weather Alpha",
+        description: "AI logistics weather signal", method: "GET" as const,
+        upstreamUrl: "https://mock.agentmeter/weather", priceUsd: 0.001,
+        dodoMeterId: "", revenueUsd: 0, requestCount: 0, active: true, createdAt: now, updatedAt: now },
+      { id: "ep_2", merchantId: "mer_demo", slug: "risk-score", name: "Risk Score",
+        description: "Wallet risk scoring", method: "GET" as const,
+        upstreamUrl: "https://mock.agentmeter/risk", priceUsd: 0.01,
+        dodoMeterId: "", revenueUsd: 0, requestCount: 0, active: true, createdAt: now, updatedAt: now },
+    ],
+    gatewayRequests: [], x402Payments: [], dodoCheckouts: [],
+    dodoWebhookEvents: [], creditLedgerEntries: [], demoRuns: []
+  } as any;
+}
+
 export async function getSerializableState() {
-  return await getStore();
+  // Race against a 4s timeout — if DB is unreachable (e.g. Neon can't be reached locally)
+  // we fall back instantly to a static demo state instead of hanging for minutes.
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error("DB_TIMEOUT")), 4000)
+  );
+  try {
+    return await Promise.race([getStore(), timeout]);
+  } catch {
+    return staticDemoState();
+  }
 }
 
 export async function findEndpoint(slug: string) {
-  const store = await getStore();
-  return store.endpoints.find(e => e.slug === slug);
+  const store = (await getSerializableState()) as AppState;
+  return store.endpoints.find((e) => e.slug === slug);
 }
 
 export async function addEndpoint(input: Omit<Endpoint, "id" | "merchantId" | "dodoMeterId" | "requestCount" | "revenueUsd" | "createdAt" | "updatedAt">) {
@@ -308,7 +347,7 @@ export async function recordDemoRun(input: Omit<DemoRun, "id" | "createdAt">) {
 }
 
 export async function getLedger(): Promise<LedgerItem[]> {
-  const store = await getStore();
+  const store = (await getSerializableState()) as AppState;
   const dodo: LedgerItem[] = store.dodoCheckouts.map((checkout) => ({
     id: checkout.id,
     kind: "dodo",
@@ -380,7 +419,7 @@ export async function getLedger(): Promise<LedgerItem[]> {
 }
 
 export async function getMetrics() {
-  const store = await getStore();
+  const store = (await getSerializableState()) as AppState;
   const successfulGw = store.gatewayRequests.filter((r) => r.statusCode === 200);
   const successfulPx = store.x402Payments.filter((p) => p.settlementStatus === "verified_devnet" || p.settlementStatus === "settled");
 

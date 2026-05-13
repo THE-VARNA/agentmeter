@@ -19,8 +19,8 @@ export default async function EndpointDetailPage({ params }: { params: Promise<{
   }
 
   const state = await getSerializableState();
-  const requests = state.gatewayRequests.filter((request) => request.endpointId === endpoint.id);
-  const payments = state.x402Payments.filter((payment) => payment.endpointId === endpoint.id);
+  const requests = state.gatewayRequests.filter((r: { endpointId: string }) => r.endpointId === endpoint.id);
+  const payments = state.x402Payments.filter((p: { endpointId: string }) => p.endpointId === endpoint.id);
   const requirement = buildX402Requirement(endpoint, state.merchant);
   const snippet = `const response = await fetch("${state.merchant.slug === "agentmeter-demo" ? "http://localhost:3000" : ""}/gateway/${endpoint.slug}", {
   headers: { "PAYMENT-SIGNATURE": signedX402Payload }
@@ -84,7 +84,7 @@ export default async function EndpointDetailPage({ params }: { params: Promise<{
               No calls yet. Run the agent demo or call the gateway with a payment header.
             </p>
           ) : (
-            requests.slice(0, 8).map((request) => (
+            requests.slice(0, 8).map((request: { id: string; path: string; txSignature?: string; statusCode: number; rawStatus: string; amountUsd: number }) => (
               <div key={request.id} className="grid gap-2 rounded-lg border border-white/10 bg-white/6 p-4 md:grid-cols-[1fr_120px_160px] md:items-center">
                 <div>
                   <p className="font-mono text-sm text-white">{request.path}</p>

@@ -13,7 +13,7 @@ export async function GET(_request: Request, context: { params: Promise<{ slug: 
   const state = await getSerializableState();
   return NextResponse.json({
     endpoint,
-    requests: state.gatewayRequests.filter((request) => request.endpointId === endpoint.id),
-    payments: state.x402Payments.filter((payment) => payment.endpointId === endpoint.id)
+    requests: state.gatewayRequests.filter((r: { endpointId: string }) => r.endpointId === endpoint.id),
+    payments: state.x402Payments.filter((p: { endpointId: string }) => p.endpointId === endpoint.id)
   });
 }

@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import {
   Activity, ArrowRight, Cable, ChevronRight,
-  Coins, Gauge, Play, Shield, Zap
+  Coins, Gauge, Key, Play, Shield, Zap
 } from "lucide-react";
 import Link from "next/link";
 
@@ -23,19 +23,19 @@ function FadeUp({ children, delay = 0, style }: { children: React.ReactNode; del
 }
 
 const steps = [
-  { num: "01", color: "#22d3ee", title: "Merchant creates endpoint", body: "Set a per-request price ($0.001–$10). AgentMeter wraps it with HTTP 402 protection and generates a Dodo usage meter.", icon: Cable },
-  { num: "02", color: "#818cf8", title: "Agent hits the gateway", body: "The AI agent sends a standard HTTP request. The gateway returns 402 with an x402 payment requirement — USDC on Solana.", icon: Zap },
-  { num: "03", color: "#34d399", title: "Solana payment verified", body: "The agent submits a signed PAYMENT-SIGNATURE header. The gateway verifies the x402 payload and routes to the upstream API.", icon: Shield },
-  { num: "04", color: "#fbbf24", title: "Dodo bills & webhooks", body: "Every fulfilled call emits a Dodo usage event. Credits deduct from the buyer's balance. Webhooks reconcile the ledger.", icon: Activity },
+  { num: "01", color: "#22d3ee", title: "Merchant creates endpoint", body: "Set a per-request price ($0.001–$10). AgentMeter wraps it with HTTP 402 protection and provisions a Dodo usage meter with enriched telemetry.", icon: Cable },
+  { num: "02", color: "#818cf8", title: "Agent hits the gateway", body: "The AI agent sends a standard HTTP request. The gateway returns 402 with an x402 payment requirement — USDC on Solana Devnet.", icon: Zap },
+  { num: "03", color: "#34d399", title: "Solana payment verified", body: "The agent submits a signed PAYMENT-SIGNATURE header. The gateway verifies the Solana tx on-chain via @solana/web3.js and routes to the upstream API.", icon: Shield },
+  { num: "04", color: "#fbbf24", title: "Dodo bills & auto-provisions", body: "Every fulfilled call emits a Dodo usage event with Solana tx metadata. Dodo's Native Entitlements Engine auto-issues License Keys for subscribers.", icon: Activity },
 ];
 
 const features = [
-  { icon: Gauge, color: "#22d3ee", bg: "rgba(34,211,238,0.1)", title: "Dodo-grade billing", body: "Checkout sessions, stablecoin payments, credit ledger, usage events, and Standard Webhooks — all wired in." },
-  { icon: Zap, color: "#818cf8", bg: "rgba(129,140,248,0.1)", title: "x402 native payments", body: "HTTP 402 protocol for autonomous agents. No API keys, no OAuth, no invoices. Just pay-per-call at machine speed." },
-  { icon: Coins, color: "#34d399", bg: "rgba(52,211,153,0.1)", title: "Solana USDC micropayments", body: "$0.001 calls are viable. 400ms finality, $0.00025 fees. Solana is the only chain that makes agent commerce real." },
-  { icon: Shield, color: "#fbbf24", bg: "rgba(251,191,36,0.1)", title: "Audit-first ledger", body: "Every request, payment, usage event, and webhook is idempotently logged with tx signatures and Dodo payment IDs." },
-  { icon: Cable, color: "#fb7185", bg: "rgba(251,113,133,0.1)", title: "Zero-config gateway", body: "Paste an upstream URL, set a price, deploy. No SDK changes needed on the protected API — fully transparent proxy." },
-  { icon: Activity, color: "#c084fc", bg: "rgba(192,132,252,0.1)", title: "Real-time dashboard", body: "Live metrics, endpoint health, gateway request logs, and credit balances — all updating without a page refresh." },
+  { icon: Gauge, color: "#22d3ee", bg: "rgba(34,211,238,0.1)", title: "Production-grade Dodo billing", body: "Checkout sessions with Idempotency Keys, stablecoin payments, usage events with enriched metadata, and Standard Webhooks — all wired in." },
+  { icon: Zap, color: "#818cf8", bg: "rgba(129,140,248,0.1)", title: "x402 native payments", body: "HTTP 402 protocol for autonomous agents. No API keys, no OAuth, no invoices. Just pay-per-call at machine speed via Solana USDC." },
+  { icon: Coins, color: "#34d399", bg: "rgba(52,211,153,0.1)", title: "Solana USDC micropayments", body: "$0.001 calls are viable. 400ms finality, sub-cent fees. Solana is the only chain that makes high-frequency agent commerce real." },
+  { icon: Key, color: "#fbbf24", bg: "rgba(251,191,36,0.1)", title: "Native Entitlements Engine", body: "Dodo auto-issues License Keys for subscribers. Agents pass X-License-Key to bypass Solana 402 and get SaaS-speed gateway access." },
+  { icon: Cable, color: "#fb7185", bg: "rgba(251,113,133,0.1)", title: "Automated Refund Safeguards", body: "If an upstream API fails after a Solana payment, the gateway calls client.refunds.create() automatically — zero friction, full trust." },
+  { icon: Activity, color: "#c084fc", bg: "rgba(192,132,252,0.1)", title: "Real-time unified dashboard", body: "Live Dodo revenue, Solana signatures, gateway logs, and credit balances — cross-referenced and unified in a single audit trail." },
 ];
 
 const stats = [
@@ -43,6 +43,13 @@ const stats = [
   { value: "400ms", label: "Solana finality" },
   { value: "HTTP 402", label: "Standard protocol" },
   { value: "∞", label: "API endpoints" },
+];
+
+// The 3 info boxes below the hero flow diagram
+const heroBadges = [
+  { label: "HTTP 402", detail: "standard payment protocol", color: "#fbbf24" },
+  { label: "Dodo usage event", detail: "enriched with Solana tx", color: "#22d3ee" },
+  { label: "Credit ledger", detail: "updated & auditable", color: "#34d399" },
 ];
 
 export default function LandingPage() {
@@ -78,7 +85,7 @@ export default function LandingPage() {
 
         <div style={{ maxWidth: 860, margin: "0 auto", padding: "0 24px", position: "relative" }}>
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, type: "tween" }}>
-            <span className="pill pill-cyan" style={{ marginBottom: 24, display: "inline-flex" }}>Dodo × Solana x402 × AI Agents</span>
+            <span className="pill pill-cyan" style={{ marginBottom: 24, display: "inline-flex" }}>Dodo Payments × Solana x402 × AI Agents</span>
           </motion.div>
 
           <motion.h1
@@ -86,7 +93,7 @@ export default function LandingPage() {
             transition={{ duration: 0.6, delay: 0.1, type: "tween" }}
             style={{ margin: "0 0 24px", fontSize: "clamp(42px, 6vw, 76px)", fontWeight: 900, letterSpacing: "-0.04em", lineHeight: 1.05, color: "#eef2f7" }}
           >
-            The payment layer{" "}
+            The production billing layer{" "}
             <span style={{ background: "linear-gradient(135deg, #22d3ee 0%, #818cf8 50%, #34d399 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>AI agents</span>
             <br />were built for
           </motion.h1>
@@ -94,9 +101,9 @@ export default function LandingPage() {
           <motion.p
             initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2, type: "tween" }}
-            style={{ margin: "0 0 40px", fontSize: "clamp(16px, 2vw, 20px)", color: "#8899aa", lineHeight: 1.65, maxWidth: 600, marginLeft: "auto", marginRight: "auto" }}
+            style={{ margin: "0 0 40px", fontSize: "clamp(16px, 2vw, 20px)", color: "#8899aa", lineHeight: 1.65, maxWidth: 620, marginLeft: "auto", marginRight: "auto" }}
           >
-            Sell metered API access to autonomous agents using Dodo-grade billing and Solana USDC micropayments.
+            Sell metered API access to autonomous agents using Dodo-grade billing, native entitlements, and Solana USDC micropayments.
             No accounts, no invoices — just{" "}
             <code style={{ color: "#22d3ee", fontFamily: "JetBrains Mono, monospace", fontSize: "0.9em" }}>HTTP 402</code>.
           </motion.p>
@@ -115,34 +122,33 @@ export default function LandingPage() {
           <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45, duration: 0.7, type: "tween" }}
             style={{ marginTop: 64 }}>
             <div className="glass-strong" style={{ borderRadius: 20, padding: "32px 24px", maxWidth: 760, margin: "0 auto" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap", rowGap: 20 }}>
+              {/* Flow nodes row */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr auto 1fr", alignItems: "center", gap: 8 }}>
                 {[
-                  { label: "AI Agent", sub: "autonomous client", color: "#818cf8", arrow: false },
-                  { label: "→", sub: "HTTP GET", color: "#8899aa", arrow: true },
-                  { label: "AgentMeter", sub: "x402 gateway", color: "#22d3ee", main: true, arrow: false },
-                  { label: "→", sub: "USDC on Solana", color: "#8899aa", arrow: true },
-                  { label: "Your API", sub: "protected endpoint", color: "#34d399", arrow: false },
+                  { label: "AI Agent", sub: "autonomous client", color: "#818cf8", isNode: true },
+                  { label: "→", sub: "HTTP GET", color: "#8899aa", isNode: false },
+                  { label: "AgentMeter", sub: "x402 gateway", color: "#22d3ee", main: true, isNode: true },
+                  { label: "→", sub: "USDC / License Key", color: "#8899aa", isNode: false },
+                  { label: "Your API", sub: "protected endpoint", color: "#34d399", isNode: true },
                 ].map((node, i) =>
-                  node.arrow ? (
-                    <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flex: "0 0 auto" }}>
-                      <span style={{ fontSize: 22, color: node.color }}>→</span>
-                      <span style={{ fontSize: 10, color: "#445566" }}>{node.sub}</span>
+                  !node.isNode ? (
+                    <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                      <span style={{ fontSize: 20, color: node.color }}>→</span>
+                      <span style={{ fontSize: 10, color: "#445566", textAlign: "center" }}>{node.sub}</span>
                     </div>
                   ) : (
-                    <div key={i} style={{ flex: 1, minWidth: 120, background: node.main ? "rgba(34,211,238,0.08)" : "rgba(255,255,255,0.05)", border: `1px solid ${node.main ? "rgba(34,211,238,0.28)" : "rgba(255,255,255,0.08)"}`, borderRadius: 12, padding: "14px 16px", textAlign: "center", boxShadow: node.main ? "0 0 28px rgba(34,211,238,0.1)" : "none" }}>
+                    <div key={i} style={{ background: node.main ? "rgba(34,211,238,0.08)" : "rgba(255,255,255,0.05)", border: `1px solid ${node.main ? "rgba(34,211,238,0.28)" : "rgba(255,255,255,0.08)"}`, borderRadius: 12, padding: "14px 16px", textAlign: "center", boxShadow: node.main ? "0 0 28px rgba(34,211,238,0.1)" : "none" }}>
                       <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: node.color }}>{node.label}</p>
                       <p style={{ margin: "4px 0 0", fontSize: 11, color: "#8899aa" }}>{node.sub}</p>
                     </div>
                   )
                 )}
               </div>
+
+              {/* Three info badges */}
               <div style={{ marginTop: 20, display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-                {[
-                  { label: "HTTP 402", detail: "payment challenge", color: "#fbbf24" },
-                  { label: "Dodo usage", detail: "event ingested", color: "#22d3ee" },
-                  { label: "Credit ledger", detail: "updated & auditable", color: "#34d399" },
-                ].map(t => (
-                  <div key={t.label} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: "10px 12px" }}>
+                {heroBadges.map(t => (
+                  <div key={t.label} style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${t.color}28`, borderRadius: 10, padding: "10px 12px" }}>
                     <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: t.color }}>{t.label}</p>
                     <p style={{ margin: "3px 0 0", fontSize: 11, color: "#8899aa" }}>{t.detail}</p>
                   </div>
@@ -187,7 +193,7 @@ export default function LandingPage() {
                 <FadeUp key={step.num} delay={i * 0.1}>
                   <motion.div whileHover={{ y: -4 }} transition={{ duration: 0.2, type: "tween" }}
                     className="glass hover-gradient-border"
-                    style={{ borderRadius: 16, padding: "28px 24px", cursor: "default" }}>
+                    style={{ borderRadius: 16, padding: "28px 24px", cursor: "default", height: "100%" }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
                       <span style={{ fontSize: 11, fontWeight: 700, color: step.color, letterSpacing: "0.08em", opacity: 0.7 }}>{step.num}</span>
                       <div style={{ width: 40, height: 40, borderRadius: 10, background: `${step.color}18`, border: `1px solid ${step.color}30`, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -224,7 +230,7 @@ export default function LandingPage() {
                 <FadeUp key={f.title} delay={i * 0.07}>
                   <motion.div whileHover={{ y: -3 }} transition={{ duration: 0.2, type: "tween" }}
                     className="glass hover-gradient-border"
-                    style={{ borderRadius: 16, padding: "26px 24px", cursor: "default" }}>
+                    style={{ borderRadius: 16, padding: "26px 24px", cursor: "default", height: "100%" }}>
                     <div style={{ width: 44, height: 44, borderRadius: 12, background: f.bg, border: `1px solid ${f.color}28`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
                       <Icon size={20} color={f.color} />
                     </div>
@@ -249,8 +255,8 @@ export default function LandingPage() {
                 <span style={{ background: "linear-gradient(135deg, #22d3ee, #818cf8)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>for agents?</span>
               </h2>
               <p style={{ margin: "0 0 32px", fontSize: 16, color: "#8899aa", lineHeight: 1.6, position: "relative" }}>
-                Launch the demo — watch the full x402 payment flow, Dodo usage events,
-                and credit ledger update in real time.
+                Launch the demo — watch the full x402 payment flow, Dodo native entitlements,
+                enriched usage events, and credit ledger update in real time.
               </p>
               <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", position: "relative" }}>
                 <Link href="/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "13px 28px", borderRadius: 12, fontSize: 15, fontWeight: 700, background: "linear-gradient(135deg, #22d3ee, #818cf8)", color: "#04080e", textDecoration: "none", boxShadow: "0 8px 32px rgba(34,211,238,0.35)" }}>
