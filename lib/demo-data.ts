@@ -6,120 +6,126 @@ import type {
 import { CREDIT_PACKS, MERCHANT_WALLET, X402_FACILITATOR_URL, X402_NETWORK } from "./constants";
 
 export async function getStore(): Promise<AppState> {
-  const merchants = await prisma.merchant.findMany();
-  let merchant = merchants[0];
-  if (!merchant) {
-    // If empty DB, this shouldn't happen because of seed, but fallback
-    merchant = await prisma.merchant.create({
-      data: {
-        id: "mer_demo",
-        name: "AgentMeter Demo",
-        slug: "agentmeter-demo",
-        dodoBusinessId: "biz_demo_agentmeter",
-        dodoCustomerId: "cus_demo_merchant",
-        solanaWallet: MERCHANT_WALLET,
-        x402Network: X402_NETWORK,
-        facilitatorUrl: X402_FACILITATOR_URL,
-      }
-    });
+  try {
+    const merchants = await prisma.merchant.findMany();
+    let merchant = merchants[0];
+    if (!merchant) {
+      // If empty DB, this shouldn't happen because of seed, but fallback
+      merchant = await prisma.merchant.create({
+        data: {
+          id: "mer_demo",
+          name: "AgentMeter Demo",
+          slug: "agentmeter-demo",
+          dodoBusinessId: "biz_demo_agentmeter",
+          dodoCustomerId: "cus_demo_merchant",
+          solanaWallet: MERCHANT_WALLET,
+          x402Network: X402_NETWORK,
+          facilitatorUrl: X402_FACILITATOR_URL,
+        }
+      });
+    }
+
+    const buyers = await prisma.buyer.findMany();
+    const endpoints = await prisma.endpoint.findMany();
+    const gateways = await prisma.gatewayRequest.findMany({ orderBy: { createdAt: 'desc' } });
+    const x402s = await prisma.x402Payment.findMany({ orderBy: { createdAt: 'desc' } });
+    const checkouts = await prisma.dodoCheckout.findMany({ orderBy: { createdAt: 'desc' } });
+    const webhooks = await prisma.dodoWebhookEvent.findMany({ orderBy: { createdAt: 'desc' } });
+    const ledgers = await prisma.creditLedgerEntry.findMany({ orderBy: { createdAt: 'desc' } });
+    const demos = await prisma.demoRun.findMany({ orderBy: { createdAt: 'desc' } });
+
+    return {
+      merchant: {
+        ...merchant,
+        dodoBusinessId: merchant.dodoBusinessId ?? undefined,
+        dodoCustomerId: merchant.dodoCustomerId ?? undefined,
+        createdAt: merchant.createdAt.toISOString(),
+        updatedAt: merchant.updatedAt.toISOString()
+      },
+      buyers: buyers.map(b => ({
+        ...b,
+        creditBalance: Number(b.creditBalance),
+        createdAt: b.createdAt.toISOString(),
+        updatedAt: b.updatedAt.toISOString()
+      })),
+      endpoints: endpoints.map(e => ({
+        ...e,
+        method: e.method as Endpoint["method"],
+        dodoMeterId: e.dodoMeterId ?? "",
+        priceUsd: Number(e.priceUsd),
+        revenueUsd: Number(e.revenueUsd),
+        createdAt: e.createdAt.toISOString(),
+        updatedAt: e.updatedAt.toISOString()
+      })),
+      gatewayRequests: gateways.map(g => ({
+        ...g,
+        method: g.method as Endpoint["method"],
+        buyerId: g.buyerId ?? undefined,
+        providerId: g.providerId ?? undefined,
+        txSignature: g.txSignature ?? undefined,
+        dodoPaymentId: g.dodoPaymentId ?? undefined,
+        errorCode: g.errorCode ?? undefined,
+        requestBody: typeof g.requestBody === "string" ? JSON.parse(g.requestBody) : g.requestBody,
+        responseBody: typeof g.responseBody === "string" ? JSON.parse(g.responseBody) : g.responseBody,
+        amountUsd: Number(g.amountUsd),
+        createdAt: g.createdAt.toISOString()
+      })),
+      x402Payments: x402s.map(x => ({
+        ...x,
+        scheme: x.scheme as "exact",
+        settlementStatus: x.settlementStatus as any,
+        buyerId: x.buyerId ?? undefined,
+        gatewayRequestId: x.gatewayRequestId ?? undefined,
+        providerId: x.providerId ?? undefined,
+        txSignature: x.txSignature ?? undefined,
+        rawPayload: typeof x.rawPayload === "string" ? JSON.parse(x.rawPayload) : x.rawPayload || undefined,
+        amountUsd: Number(x.amountUsd),
+        createdAt: x.createdAt.toISOString()
+      })),
+      dodoCheckouts: checkouts.map(c => ({
+        ...c,
+        buyerId: c.buyerId ?? undefined,
+        providerId: c.providerId ?? undefined,
+        dodoPaymentId: c.dodoPaymentId ?? undefined,
+        rawPayload: typeof c.rawPayload === "string" ? JSON.parse(c.rawPayload) : c.rawPayload || undefined,
+        amountUsd: Number(c.amountUsd),
+        createdAt: c.createdAt.toISOString(),
+        updatedAt: c.updatedAt.toISOString()
+      })),
+      dodoWebhookEvents: webhooks.map(w => ({
+        ...w,
+        txSignature: w.txSignature ?? undefined,
+        dodoPaymentId: w.dodoPaymentId ?? undefined,
+        parsedAmount: w.parsedAmount ? Number(w.parsedAmount) : undefined,
+        processedAt: w.processedAt?.toISOString(),
+        rawPayload: typeof w.rawPayload === "string" ? JSON.parse(w.rawPayload) : w.rawPayload,
+        createdAt: w.createdAt.toISOString()
+      })),
+      creditLedgerEntries: ledgers.map(l => ({
+        ...l,
+        providerId: l.providerId ?? undefined,
+        dodoPaymentId: l.dodoPaymentId ?? undefined,
+        txSignature: l.txSignature ?? undefined,
+        rawPayload: typeof l.rawPayload === "string" ? JSON.parse(l.rawPayload) : l.rawPayload || undefined,
+        amount: Number(l.amount),
+        balanceBefore: Number(l.balanceBefore),
+        balanceAfter: Number(l.balanceAfter),
+        createdAt: l.createdAt.toISOString()
+      })),
+      demoRuns: demos.map(d => ({
+        ...d,
+        providerId: d.providerId ?? undefined,
+        txSignature: d.txSignature ?? undefined,
+        dodoPaymentId: d.dodoPaymentId ?? undefined,
+        amountUsd: Number(d.amountUsd),
+        createdAt: d.createdAt.toISOString(),
+        steps: typeof d.steps === "string" ? (JSON.parse(d.steps) || []) : (d.steps || []),
+      }))
+    };
+  } catch (error) {
+    console.error("Database connection failed, falling back to static state:", error);
+    return staticDemoState();
   }
-
-  const buyers = await prisma.buyer.findMany();
-  const endpoints = await prisma.endpoint.findMany();
-  const gateways = await prisma.gatewayRequest.findMany({ orderBy: { createdAt: 'desc' } });
-  const x402s = await prisma.x402Payment.findMany({ orderBy: { createdAt: 'desc' } });
-  const checkouts = await prisma.dodoCheckout.findMany({ orderBy: { createdAt: 'desc' } });
-  const webhooks = await prisma.dodoWebhookEvent.findMany({ orderBy: { createdAt: 'desc' } });
-  const ledgers = await prisma.creditLedgerEntry.findMany({ orderBy: { createdAt: 'desc' } });
-  const demos = await prisma.demoRun.findMany({ orderBy: { createdAt: 'desc' } });
-
-  return {
-    merchant: {
-      ...merchant,
-      dodoBusinessId: merchant.dodoBusinessId ?? undefined,
-      dodoCustomerId: merchant.dodoCustomerId ?? undefined,
-      createdAt: merchant.createdAt.toISOString(),
-      updatedAt: merchant.updatedAt.toISOString()
-    },
-    buyers: buyers.map(b => ({
-      ...b,
-      creditBalance: Number(b.creditBalance),
-      createdAt: b.createdAt.toISOString(),
-      updatedAt: b.updatedAt.toISOString()
-    })),
-    endpoints: endpoints.map(e => ({
-      ...e,
-      method: e.method as Endpoint["method"],
-      dodoMeterId: e.dodoMeterId ?? "",
-      priceUsd: Number(e.priceUsd),
-      revenueUsd: Number(e.revenueUsd),
-      createdAt: e.createdAt.toISOString(),
-      updatedAt: e.updatedAt.toISOString()
-    })),
-    gatewayRequests: gateways.map(g => ({
-      ...g,
-      method: g.method as Endpoint["method"],
-      buyerId: g.buyerId ?? undefined,
-      providerId: g.providerId ?? undefined,
-      txSignature: g.txSignature ?? undefined,
-      dodoPaymentId: g.dodoPaymentId ?? undefined,
-      errorCode: g.errorCode ?? undefined,
-      requestBody: typeof g.requestBody === "string" ? JSON.parse(g.requestBody) : g.requestBody,
-      responseBody: typeof g.responseBody === "string" ? JSON.parse(g.responseBody) : g.responseBody,
-      amountUsd: Number(g.amountUsd),
-      createdAt: g.createdAt.toISOString()
-    })),
-    x402Payments: x402s.map(x => ({
-      ...x,
-      scheme: x.scheme as "exact",
-      settlementStatus: x.settlementStatus as any,
-      buyerId: x.buyerId ?? undefined,
-      gatewayRequestId: x.gatewayRequestId ?? undefined,
-      providerId: x.providerId ?? undefined,
-      txSignature: x.txSignature ?? undefined,
-      rawPayload: typeof x.rawPayload === "string" ? JSON.parse(x.rawPayload) : x.rawPayload || undefined,
-      amountUsd: Number(x.amountUsd),
-      createdAt: x.createdAt.toISOString()
-    })),
-    dodoCheckouts: checkouts.map(c => ({
-      ...c,
-      buyerId: c.buyerId ?? undefined,
-      providerId: c.providerId ?? undefined,
-      dodoPaymentId: c.dodoPaymentId ?? undefined,
-      rawPayload: typeof c.rawPayload === "string" ? JSON.parse(c.rawPayload) : c.rawPayload || undefined,
-      amountUsd: Number(c.amountUsd),
-      createdAt: c.createdAt.toISOString(),
-      updatedAt: c.updatedAt.toISOString()
-    })),
-    dodoWebhookEvents: webhooks.map(w => ({
-      ...w,
-      txSignature: w.txSignature ?? undefined,
-      dodoPaymentId: w.dodoPaymentId ?? undefined,
-      parsedAmount: w.parsedAmount ? Number(w.parsedAmount) : undefined,
-      processedAt: w.processedAt?.toISOString(),
-      createdAt: w.createdAt.toISOString()
-    })),
-    creditLedgerEntries: ledgers.map(l => ({
-      ...l,
-      providerId: l.providerId ?? undefined,
-      dodoPaymentId: l.dodoPaymentId ?? undefined,
-      txSignature: l.txSignature ?? undefined,
-      rawPayload: typeof l.rawPayload === "string" ? JSON.parse(l.rawPayload) : l.rawPayload || undefined,
-      amount: Number(l.amount),
-      balanceBefore: Number(l.balanceBefore),
-      balanceAfter: Number(l.balanceAfter),
-      createdAt: l.createdAt.toISOString()
-    })),
-    demoRuns: demos.map(d => ({
-      ...d,
-      providerId: d.providerId ?? undefined,
-      txSignature: d.txSignature ?? undefined,
-      dodoPaymentId: d.dodoPaymentId ?? undefined,
-      amountUsd: Number(d.amountUsd),
-      createdAt: d.createdAt.toISOString(),
-      steps: typeof d.steps === "string" ? JSON.parse(d.steps) : d.steps,
-    }))
-  };
 }
 
 function staticDemoState() {
