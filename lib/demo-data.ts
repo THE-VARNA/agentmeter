@@ -64,8 +64,8 @@ export async function getStore(): Promise<AppState> {
       txSignature: g.txSignature ?? undefined,
       dodoPaymentId: g.dodoPaymentId ?? undefined,
       errorCode: g.errorCode ?? undefined,
-      requestBody: g.requestBody ? g.requestBody : undefined,
-      responseBody: g.responseBody ? g.responseBody : undefined,
+      requestBody: typeof g.requestBody === "string" ? JSON.parse(g.requestBody) : g.requestBody,
+      responseBody: typeof g.responseBody === "string" ? JSON.parse(g.responseBody) : g.responseBody,
       amountUsd: Number(g.amountUsd),
       createdAt: g.createdAt.toISOString()
     })),
@@ -77,7 +77,7 @@ export async function getStore(): Promise<AppState> {
       gatewayRequestId: x.gatewayRequestId ?? undefined,
       providerId: x.providerId ?? undefined,
       txSignature: x.txSignature ?? undefined,
-      rawPayload: x.rawPayload ? x.rawPayload : undefined,
+      rawPayload: typeof x.rawPayload === "string" ? JSON.parse(x.rawPayload) : x.rawPayload || undefined,
       amountUsd: Number(x.amountUsd),
       createdAt: x.createdAt.toISOString()
     })),
@@ -86,7 +86,7 @@ export async function getStore(): Promise<AppState> {
       buyerId: c.buyerId ?? undefined,
       providerId: c.providerId ?? undefined,
       dodoPaymentId: c.dodoPaymentId ?? undefined,
-      rawPayload: c.rawPayload ? c.rawPayload : undefined,
+      rawPayload: typeof c.rawPayload === "string" ? JSON.parse(c.rawPayload) : c.rawPayload || undefined,
       amountUsd: Number(c.amountUsd),
       createdAt: c.createdAt.toISOString(),
       updatedAt: c.updatedAt.toISOString()
@@ -104,7 +104,7 @@ export async function getStore(): Promise<AppState> {
       providerId: l.providerId ?? undefined,
       dodoPaymentId: l.dodoPaymentId ?? undefined,
       txSignature: l.txSignature ?? undefined,
-      rawPayload: l.rawPayload ? l.rawPayload : undefined,
+      rawPayload: typeof l.rawPayload === "string" ? JSON.parse(l.rawPayload) : l.rawPayload || undefined,
       amount: Number(l.amount),
       balanceBefore: Number(l.balanceBefore),
       balanceAfter: Number(l.balanceAfter),
@@ -117,7 +117,7 @@ export async function getStore(): Promise<AppState> {
       dodoPaymentId: d.dodoPaymentId ?? undefined,
       amountUsd: Number(d.amountUsd),
       createdAt: d.createdAt.toISOString(),
-      steps: d.steps as any
+      steps: typeof d.steps === "string" ? JSON.parse(d.steps) : d.steps,
     }))
   };
 }

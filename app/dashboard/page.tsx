@@ -123,7 +123,7 @@ export default function DashboardPage() {
                 <span key={h} style={{ fontSize: 11, fontWeight: 700, color: "#8899aa", letterSpacing: "0.06em", textTransform: "uppercase" }}>{h}</span>
               ))}
             </div>
-            {state?.endpoints.map((ep, i) => (
+            {state?.endpoints?.map((ep, i) => (
               <motion.div key={ep.id}
                 initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4 + i * 0.1 }}
